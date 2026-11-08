@@ -1,0 +1,29 @@
+{
+  "name": "syncspace-backend",
+  "version": "1.0.0",
+  "description": "Real-Time WebSocket CRDT Sync Server with Redis PubSub & Prisma Persistence",
+  "main": "src/server.js",
+  "type": "module",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "node --watch src/server.js",
+    "test": "node tests/convergence.test.js",
+    "test:stress": "node tests/stress.test.js"
+  },
+  "dependencies": {
+    "@prisma/client": "^5.22.0",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.21.1",
+    "ioredis": "^5.4.1",
+    "lib0": "^0.2.98",
+    "syncspace-workspace": "file:..",
+    "ws": "^8.18.0",
+    "y-protocols": "^1.0.6",
+    "y-websocket": "^2.0.4",
+    "yjs": "^13.6.20"
+  },
+  "devDependencies": {
+    "prisma": "^5.22.0"
+  }
+}

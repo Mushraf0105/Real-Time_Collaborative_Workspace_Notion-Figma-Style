@@ -1,0 +1,29 @@
+{
+  "name": "syncspace-workspace",
+  "version": "1.0.0",
+  "description": "SyncSpace — Real-Time Collaborative Workspace (Notion/Figma Style)",
+  "private": true,
+  "scripts": {
+    "install:all": "npm --prefix backend install && npm --prefix frontend install",
+    "dev:backend": "npm --prefix backend run dev",
+    "dev:frontend": "npm --prefix frontend run dev",
+    "seed": "node backend/src/db/seed.js",
+    "test": "node backend/tests/convergence.test.js",
+    "test:stress": "node backend/tests/stress.test.js"
+  },
+  "keywords": [
+    "crdt",
+    "yjs",
+    "nextjs",
+    "websockets",
+    "tiptap",
+    "real-time",
+    "notion",
+    "figma",
+    "redis",
+    "prisma",
+    "postgresql"
+  ],
+  "author": "Intern Engineering Team",
+  "license": "ISC"
+}
