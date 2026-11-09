@@ -309,6 +309,30 @@ export default function WorkspacePage() {
     } catch (err) {}
   };
 
+  const handleAddMember = async ({ name, email, role, color }) => {
+    try {
+      const res = await fetch(`${API_BASE}/auth/users`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name,
+          email,
+          role,
+          color,
+          workspaceId: currentWorkspace?.id,
+        }),
+      });
+      const newUser = await res.json();
+      setUsers((prev) => [...prev.filter((u) => u.id !== newUser.id), newUser]);
+      if (currentDocument) {
+        await handleUpdatePermission(newUser.id, role || 'EDIT');
+      }
+      return newUser;
+    } catch (err) {
+      console.error('Failed to create member:', err);
+    }
+  };
+
   return (
     <div className="flex h-screen w-screen overflow-hidden bg-white">
       {/* Sidebar: Workspaces & Document Tree */}
@@ -325,6 +349,7 @@ export default function WorkspacePage() {
         currentUser={currentUser}
         onSwitchUser={setCurrentUser}
         wsConnected={wsConnected}
+        onOpenAddMember={() => setPermissionsOpen(true)}
       />
 
       {/* Main Collaborative Workspace Canvas / Document Area */}
@@ -419,7 +444,9 @@ export default function WorkspacePage() {
         users={users}
         permissions={permissions}
         onUpdatePermission={handleUpdatePermission}
+        onAddMember={handleAddMember}
       />
     </div>
   );
 }
+

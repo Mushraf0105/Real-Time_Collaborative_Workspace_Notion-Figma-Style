@@ -51,6 +51,55 @@ app.get('/api/auth/users', async (req, res) => {
   }
 });
 
+app.post('/api/auth/users', async (req, res) => {
+  try {
+    const { name, email, role, color, workspaceId } = req.body;
+    if (!name || !email) {
+      return res.status(400).json({ error: 'Name and email are required' });
+    }
+
+    const palette = ['#3b82f6', '#10b981', '#f59e0b', '#ec4899', '#8b5cf6', '#06b6d4', '#f97316', '#14b8a6'];
+    const chosenColor = color || palette[Math.floor(Math.random() * palette.length)];
+
+    let user = await prisma.user.findUnique({ where: { email } });
+    if (!user) {
+      user = await prisma.user.create({
+        data: {
+          name,
+          email,
+          password: 'Password@123',
+          color: chosenColor,
+          role: role || 'MEMBER',
+        },
+      });
+    }
+
+    // Add user as member to workspace
+    const ws = workspaceId
+      ? await prisma.workspace.findUnique({ where: { id: workspaceId } })
+      : await prisma.workspace.findFirst();
+
+    if (ws) {
+      await prisma.workspaceMember.upsert({
+        where: {
+          workspaceId_userId: { workspaceId: ws.id, userId: user.id },
+        },
+        update: { role: role || 'MEMBER' },
+        create: {
+          workspaceId: ws.id,
+          userId: user.id,
+          role: role || 'MEMBER',
+        },
+      });
+    }
+
+    res.status(201).json(user);
+  } catch (err) {
+    console.error('Failed to create user:', err);
+    res.status(500).json({ error: 'Failed to create member' });
+  }
+});
+
 app.post('/api/auth/login', async (req, res) => {
   const { email, password } = req.body;
   try {

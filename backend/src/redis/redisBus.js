@@ -107,3 +107,4 @@ class RedisSyncBus extends EventEmitter {
 }
 
 export const redisBus = new RedisSyncBus();
+

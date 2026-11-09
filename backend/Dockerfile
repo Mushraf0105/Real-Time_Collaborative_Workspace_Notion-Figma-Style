@@ -14,3 +14,4 @@ COPY tests ./tests/
 EXPOSE 5001 1234
 
 CMD ["node", "src/server.js"]
+

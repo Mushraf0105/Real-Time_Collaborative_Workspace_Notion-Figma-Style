@@ -264,3 +264,4 @@ Awareness updates are encoded as VarUint client count + JSON state dictionaries:
 }
 ```
 Client heartbeats occur every 30 seconds to automatically prune disconnected peers.
+

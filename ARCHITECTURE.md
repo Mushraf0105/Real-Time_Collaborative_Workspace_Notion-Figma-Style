@@ -228,3 +228,4 @@ erDiagram
    - Updates the database row with the historical state.
    - Applies the historical binary update to the active in-memory `Y.Doc`.
    - Broadcasts the rollback update across Redis Pub/Sub, immediately rewinding the active text for all currently connected browser peers in real time!
+

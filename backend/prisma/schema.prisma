@@ -109,3 +109,4 @@ model DocumentSnapshot {
   document    Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
   creator     User     @relation(fields: [createdBy], references: [id])
 }
+

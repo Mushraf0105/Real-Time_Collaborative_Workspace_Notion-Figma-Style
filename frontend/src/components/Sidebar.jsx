@@ -28,6 +28,7 @@ export default function Sidebar({
   currentUser,
   onSwitchUser,
   wsConnected,
+  onOpenAddMember,
 }) {
   const [workspaceMenuOpen, setWorkspaceMenuOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
@@ -264,6 +265,19 @@ export default function Sidebar({
                   </div>
                 </button>
               ))}
+
+              <div className="pt-1 mt-1 border-t border-slate-100">
+                <button
+                  onClick={() => {
+                    setUserMenuOpen(false);
+                    if (onOpenAddMember) onOpenAddMember();
+                  }}
+                  className="w-full flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-lg text-xs font-semibold text-blue-600 hover:bg-blue-50 transition-colors"
+                >
+                  <Plus size={13} />
+                  <span>+ Add New Member</span>
+                </button>
+              </div>
             </div>
           )}
         </div>
@@ -271,3 +285,4 @@ export default function Sidebar({
     </aside>
   );
 }
+

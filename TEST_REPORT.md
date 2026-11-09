@@ -121,3 +121,4 @@ npm run test:stress
 ### Results
 - Update delivery from Client A (Server 1) to Client B (Server 2) achieved average latency of **1.42 ms**.
 - The fallback in-memory EventEmitter bus was also tested by disconnecting Redis; the system transitioned gracefully without dropping active browser sessions.
+
