@@ -6,11 +6,7 @@ import {
   Palette,
   MessageSquare,
   History,
-  Shield,
-  Users,
-  Share2,
-  CheckCircle2,
-  Clock
+  Shield
 } from 'lucide-react';
 
 export default function CollaborativeHeader({

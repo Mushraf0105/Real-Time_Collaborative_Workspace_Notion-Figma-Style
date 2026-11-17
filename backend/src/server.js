@@ -136,7 +136,6 @@ app.post('/api/auth/login', async (req, res) => {
 // ----------------------------------------------------
 app.get('/api/workspaces', async (req, res) => {
   try {
-    const userId = req.headers['x-user-id'] || 'usr_alice_01';
     const workspaces = await prisma.workspace.findMany({
       include: {
         members: {

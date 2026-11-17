@@ -4,14 +4,7 @@ import React, { useState } from 'react';
 import {
   X,
   Shield,
-  Check,
-  User,
-  Eye,
-  MessageSquare,
-  Edit3,
-  UserPlus,
-  Mail,
-  Palette
+  UserPlus
 } from 'lucide-react';
 
 const PALETTE = [

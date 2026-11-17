@@ -5,9 +5,7 @@ import {
   X,
   MessageSquare,
   CheckCircle2,
-  CornerDownRight,
-  Send,
-  Quote
+  Send
 } from 'lucide-react';
 
 export default function CommentsDrawer({

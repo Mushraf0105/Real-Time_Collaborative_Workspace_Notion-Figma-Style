@@ -70,7 +70,6 @@ export const customPersistence = {
                 updatedAt: new Date(),
               },
             });
-            // console.log(`[CRDT Persistence] Saved state snapshot for ${docName}`);
           } catch (err) {
             // Document might not exist in DB yet if created ad-hoc
           }

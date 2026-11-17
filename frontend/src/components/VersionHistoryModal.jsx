@@ -7,9 +7,7 @@ import {
   RotateCcw,
   Plus,
   Calendar,
-  User,
-  CheckCircle2,
-  FileClock
+  User
 } from 'lucide-react';
 
 export default function VersionHistoryModal({
@@ -18,7 +16,6 @@ export default function VersionHistoryModal({
   snapshots,
   onCreateSnapshot,
   onRollback,
-  currentUser,
 }) {
   const [newTitle, setNewTitle] = useState('');
   const [newDescription, setNewDescription] = useState('');

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import * as Y from 'yjs';
 import { WebsocketProvider } from 'y-websocket';
 import Sidebar from '../components/Sidebar';
@@ -434,7 +434,6 @@ export default function WorkspacePage() {
         snapshots={snapshots}
         onCreateSnapshot={handleCreateSnapshot}
         onRollback={handleRollback}
-        currentUser={currentUser}
       />
 
       {/* Granular Permissions Modal */}

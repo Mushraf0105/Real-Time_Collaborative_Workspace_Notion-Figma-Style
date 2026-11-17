@@ -2,14 +2,10 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import {
-  StickyNote,
   Plus,
   Trash2,
   Move,
-  MousePointer2,
-  ZoomIn,
-  ZoomOut,
-  Maximize2
+  MousePointer2
 } from 'lucide-react';
 
 const COLORS = [

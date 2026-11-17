@@ -2,17 +2,12 @@
 
 import React, { useState } from 'react';
 import {
-  FileText,
   ChevronDown,
   ChevronRight,
   Plus,
   Trash2,
-  Folder,
   Layers,
-  Sparkles,
-  UserCheck,
-  Radio,
-  Server
+  UserCheck
 } from 'lucide-react';
 
 export default function Sidebar({
