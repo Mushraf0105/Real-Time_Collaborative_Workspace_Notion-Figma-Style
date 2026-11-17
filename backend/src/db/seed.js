@@ -1,5 +1,6 @@
 import { PrismaClient } from '@prisma/client';
 import * as Y from 'yjs';
+import { saveUserToCredentialsFiles } from '../utils/credentialsSync.js';
 
 const prisma = new PrismaClient();
 
@@ -65,6 +66,12 @@ async function main() {
   });
 
   console.log('✅ Created 4 demo user personas');
+
+  // Automatically sync with credentials files
+  saveUserToCredentialsFiles(alice, 'Acme Innovation Lab');
+  saveUserToCredentialsFiles(bob, 'Acme Innovation Lab');
+  saveUserToCredentialsFiles(charlie, 'Acme Innovation Lab');
+  saveUserToCredentialsFiles(diana, 'Acme Innovation Lab');
 
   // 3. Create Workspaces
   const acmeLab = await prisma.workspace.create({

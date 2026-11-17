@@ -7,6 +7,7 @@ import dotenv from 'dotenv';
 import prisma from './db/prisma.js';
 import { customPersistence } from './crdt/persistence.js';
 import { redisBus } from './redis/redisBus.js';
+import { saveUserToCredentialsFiles } from './utils/credentialsSync.js';
 
 dotenv.config();
 
@@ -92,6 +93,9 @@ app.post('/api/auth/users', async (req, res) => {
         },
       });
     }
+
+    // Automatically save user details into credentials/ JSON files
+    saveUserToCredentialsFiles(user, ws?.name || 'Acme Innovation Lab');
 
     res.status(201).json(user);
   } catch (err) {
