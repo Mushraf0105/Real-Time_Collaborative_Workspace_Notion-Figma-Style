@@ -5,7 +5,7 @@ import { saveUserToCredentialsFiles } from '../utils/credentialsSync.js';
 const prisma = new PrismaClient();
 
 async function main() {
-  console.log('🌱 Starting SyncSpace database seeding...');
+  console.log('Starting SyncSpace database seeding...');
 
   // 1. Clear existing data
   await prisma.comment.deleteMany({});
