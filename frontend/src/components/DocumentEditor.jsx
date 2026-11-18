@@ -34,6 +34,7 @@ export default function DocumentEditor({
   currentUser,
   userPermission,
   onCommentSelection,
+  onEditorReady,
 }) {
   const isReadOnly = userPermission === 'VIEW' || userPermission === 'COMMENT';
 
@@ -72,6 +73,13 @@ export default function DocumentEditor({
     },
     [yDoc, provider]
   );
+
+  // Pass editor instance to parent for export & inspection
+  useEffect(() => {
+    if (editor && onEditorReady) {
+      onEditorReady(editor);
+    }
+  }, [editor, onEditorReady]);
 
   // Update awareness when current user changes
   useEffect(() => {

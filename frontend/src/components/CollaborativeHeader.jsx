@@ -1,12 +1,14 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import {
   FileText,
   Palette,
   MessageSquare,
   History,
-  Shield
+  Shield,
+  Download,
+  ChevronDown
 } from 'lucide-react';
 
 export default function CollaborativeHeader({
@@ -20,7 +22,9 @@ export default function CollaborativeHeader({
   onOpenPermissions,
   userPermission,
   onUpdateTitle,
+  onExport,
 }) {
+  const [exportOpen, setExportOpen] = useState(false);
   return (
     <header className="h-14 border-b border-slate-200 bg-white flex items-center justify-between px-4 shrink-0 select-none z-10">
       {/* Left: Document Icon & Title */}
@@ -136,6 +140,82 @@ export default function CollaborativeHeader({
           <History size={14} className="text-slate-500" />
           <span>History</span>
         </button>
+
+        {/* Export Dropdown */}
+        <div className="relative">
+          <button
+            onClick={() => setExportOpen(!exportOpen)}
+            title="Export Document"
+            className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-100 rounded-lg border border-slate-200 transition-colors bg-white shadow-xs"
+          >
+            <Download size={14} className="text-slate-500" />
+            <span>Export</span>
+            <ChevronDown size={12} className="text-slate-400" />
+          </button>
+
+          {exportOpen && (
+            <div className="absolute right-0 mt-1.5 w-48 bg-white border border-slate-200 rounded-xl shadow-xl z-50 p-1.5 space-y-0.5 animate-in fade-in duration-100">
+              <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider px-2 py-1">
+                Export As
+              </div>
+
+              <button
+                onClick={() => {
+                  if (onExport) onExport('pdf');
+                  setExportOpen(false);
+                }}
+                className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs text-slate-700 hover:bg-blue-50 hover:text-blue-700 transition-colors text-left"
+              >
+                <span className="text-rose-600 font-bold text-[11px] w-7">PDF</span>
+                <span>PDF Document (.pdf)</span>
+              </button>
+
+              <button
+                onClick={() => {
+                  if (onExport) onExport('word');
+                  setExportOpen(false);
+                }}
+                className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs text-slate-700 hover:bg-blue-50 hover:text-blue-700 transition-colors text-left"
+              >
+                <span className="text-blue-600 font-bold text-[11px] w-7">DOC</span>
+                <span>Word Document (.doc)</span>
+              </button>
+
+              <button
+                onClick={() => {
+                  if (onExport) onExport('xml');
+                  setExportOpen(false);
+                }}
+                className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs text-slate-700 hover:bg-blue-50 hover:text-blue-700 transition-colors text-left"
+              >
+                <span className="text-emerald-600 font-bold text-[11px] w-7">XML</span>
+                <span>XML Document (.xml)</span>
+              </button>
+
+              <button
+                onClick={() => {
+                  if (onExport) onExport('html');
+                  setExportOpen(false);
+                }}
+                className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs text-slate-700 hover:bg-blue-50 hover:text-blue-700 transition-colors text-left"
+              >
+                <span className="text-amber-600 font-bold text-[11px] w-7">HTML</span>
+                <span>HTML Webpage (.html)</span>
+              </button>
+
+              <button
+                onClick={() => {
+                  if (onExport) onExport('markdown');
+                  setExportOpen(false);
+                }}
+                className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs text-slate-700 hover:bg-blue-50 hover:text-blue-700 transition-colors text-left"
+              >
+                <span className="text-purple-600 font-bold text-[11px] w-7">MD</span>
+                <span>Markdown (.md)</span>
+              </button>
+            </div>
+          )}
+        </div>
       </div>
     </header>
   );

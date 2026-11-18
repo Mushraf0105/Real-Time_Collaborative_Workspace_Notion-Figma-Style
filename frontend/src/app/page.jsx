@@ -10,6 +10,13 @@ import CollaborativeCanvas from '../components/CollaborativeCanvas';
 import CommentsDrawer from '../components/CommentsDrawer';
 import VersionHistoryModal from '../components/VersionHistoryModal';
 import PermissionsModal from '../components/PermissionsModal';
+import {
+  exportToPDF,
+  exportToWord,
+  exportToXML,
+  exportToHTML,
+  exportToMarkdown,
+} from '../utils/exportDocument';
 
 const API_BASE = 'http://localhost:5001/api';
 const WS_URL = 'ws://localhost:1234';
@@ -22,6 +29,7 @@ export default function WorkspacePage() {
   const [currentDocument, setCurrentDocument] = useState(null);
   const [users, setUsers] = useState([]);
   const [currentUser, setCurrentUser] = useState(null);
+  const [activeEditor, setActiveEditor] = useState(null);
 
   // State: Workspace views & drawers
   const [activeMode, setActiveMode] = useState('document'); // 'document' | 'canvas'
@@ -333,6 +341,34 @@ export default function WorkspacePage() {
     }
   };
 
+  const handleExport = (format) => {
+    if (!currentDocument) return;
+    const title = currentDocument.title || 'Untitled Document';
+    const htmlContent = activeEditor?.getHTML() || currentDocument.content || `<h1>${title}</h1>`;
+    const textContent = activeEditor?.getText() || currentDocument.content || title;
+    const jsonContent = activeEditor?.getJSON() || null;
+
+    switch (format) {
+      case 'pdf':
+        exportToPDF(title, htmlContent);
+        break;
+      case 'word':
+        exportToWord(title, htmlContent);
+        break;
+      case 'xml':
+        exportToXML(title, currentDocument, jsonContent, textContent);
+        break;
+      case 'html':
+        exportToHTML(title, htmlContent);
+        break;
+      case 'markdown':
+        exportToMarkdown(title, textContent);
+        break;
+      default:
+        break;
+    }
+  };
+
   return (
     <div className="flex h-screen w-screen overflow-hidden bg-white">
       {/* Sidebar: Workspaces & Document Tree */}
@@ -368,6 +404,7 @@ export default function WorkspacePage() {
               onOpenPermissions={() => setPermissionsOpen(true)}
               userPermission={userPermission}
               onUpdateTitle={handleUpdateTitle}
+              onExport={handleExport}
             />
 
             {/* Content View: TipTap Document or Infinite Canvas */}
@@ -384,6 +421,7 @@ export default function WorkspacePage() {
                       setPendingSelection({ text, position });
                       setCommentsOpen(true);
                     }}
+                    onEditorReady={setActiveEditor}
                   />
                 ) : (
                   <div className="flex-1 flex items-center justify-center text-slate-400 text-sm">
