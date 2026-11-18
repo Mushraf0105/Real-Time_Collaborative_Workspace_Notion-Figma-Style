@@ -67,7 +67,7 @@ export default function DocumentEditor({
       ],
       editorProps: {
         attributes: {
-          class: 'prose prose-slate max-w-none focus:outline-none min-h-[600px] px-8 py-6',
+          class: 'prose prose-slate max-w-none focus:outline-none min-h-[400px] sm:min-h-[600px] px-2 sm:px-6 py-2 sm:py-6 break-words min-w-0',
         },
       },
     },
@@ -135,10 +135,10 @@ export default function DocumentEditor({
 
       {/* Formatting Toolbar */}
       {!isReadOnly && (
-        <div className="border-b border-slate-200 px-6 py-2 flex flex-wrap items-center gap-1 bg-slate-50/70 select-none">
+        <div className="border-b border-slate-200 px-2 sm:px-6 py-1.5 sm:py-2 flex items-center gap-1 bg-slate-50/70 select-none overflow-x-auto no-scrollbar shrink-0">
           <button
             onClick={() => editor.chain().focus().toggleBold().run()}
-            className={`p-1.5 rounded hover:bg-slate-200 transition-colors ${
+            className={`p-1.5 rounded hover:bg-slate-200 shrink-0 transition-colors ${
               editor.isActive('bold') ? 'bg-slate-200 text-blue-600' : 'text-slate-600'
             }`}
             title="Bold (Ctrl+B)"
@@ -147,7 +147,7 @@ export default function DocumentEditor({
           </button>
           <button
             onClick={() => editor.chain().focus().toggleItalic().run()}
-            className={`p-1.5 rounded hover:bg-slate-200 transition-colors ${
+            className={`p-1.5 rounded hover:bg-slate-200 shrink-0 transition-colors ${
               editor.isActive('italic') ? 'bg-slate-200 text-blue-600' : 'text-slate-600'
             }`}
             title="Italic (Ctrl+I)"
@@ -156,7 +156,7 @@ export default function DocumentEditor({
           </button>
           <button
             onClick={() => editor.chain().focus().toggleCode().run()}
-            className={`p-1.5 rounded hover:bg-slate-200 transition-colors ${
+            className={`p-1.5 rounded hover:bg-slate-200 shrink-0 transition-colors ${
               editor.isActive('code') ? 'bg-slate-200 text-blue-600' : 'text-slate-600'
             }`}
             title="Inline Code"
@@ -164,11 +164,11 @@ export default function DocumentEditor({
             <Code size={15} />
           </button>
 
-          <span className="w-px h-5 bg-slate-300 mx-1" />
+          <span className="w-px h-5 bg-slate-300 mx-0.5 sm:mx-1 shrink-0" />
 
           <button
             onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
-            className={`p-1.5 rounded hover:bg-slate-200 transition-colors ${
+            className={`p-1.5 rounded hover:bg-slate-200 shrink-0 transition-colors ${
               editor.isActive('heading', { level: 1 }) ? 'bg-slate-200 text-blue-600' : 'text-slate-600'
             }`}
             title="Heading 1"
@@ -177,7 +177,7 @@ export default function DocumentEditor({
           </button>
           <button
             onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
-            className={`p-1.5 rounded hover:bg-slate-200 transition-colors ${
+            className={`p-1.5 rounded hover:bg-slate-200 shrink-0 transition-colors ${
               editor.isActive('heading', { level: 2 }) ? 'bg-slate-200 text-blue-600' : 'text-slate-600'
             }`}
             title="Heading 2"
@@ -186,7 +186,7 @@ export default function DocumentEditor({
           </button>
           <button
             onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}
-            className={`p-1.5 rounded hover:bg-slate-200 transition-colors ${
+            className={`p-1.5 rounded hover:bg-slate-200 shrink-0 transition-colors ${
               editor.isActive('heading', { level: 3 }) ? 'bg-slate-200 text-blue-600' : 'text-slate-600'
             }`}
             title="Heading 3"
@@ -194,11 +194,11 @@ export default function DocumentEditor({
             <Heading3 size={15} />
           </button>
 
-          <span className="w-px h-5 bg-slate-300 mx-1" />
+          <span className="w-px h-5 bg-slate-300 mx-0.5 sm:mx-1 shrink-0" />
 
           <button
             onClick={() => editor.chain().focus().toggleBulletList().run()}
-            className={`p-1.5 rounded hover:bg-slate-200 transition-colors ${
+            className={`p-1.5 rounded hover:bg-slate-200 shrink-0 transition-colors ${
               editor.isActive('bulletList') ? 'bg-slate-200 text-blue-600' : 'text-slate-600'
             }`}
             title="Bullet List"
@@ -207,7 +207,7 @@ export default function DocumentEditor({
           </button>
           <button
             onClick={() => editor.chain().focus().toggleOrderedList().run()}
-            className={`p-1.5 rounded hover:bg-slate-200 transition-colors ${
+            className={`p-1.5 rounded hover:bg-slate-200 shrink-0 transition-colors ${
               editor.isActive('orderedList') ? 'bg-slate-200 text-blue-600' : 'text-slate-600'
             }`}
             title="Numbered List"
@@ -216,7 +216,7 @@ export default function DocumentEditor({
           </button>
           <button
             onClick={() => editor.chain().focus().toggleTaskList().run()}
-            className={`p-1.5 rounded hover:bg-slate-200 transition-colors ${
+            className={`p-1.5 rounded hover:bg-slate-200 shrink-0 transition-colors ${
               editor.isActive('taskList') ? 'bg-slate-200 text-blue-600' : 'text-slate-600'
             }`}
             title="Task List"
@@ -225,7 +225,7 @@ export default function DocumentEditor({
           </button>
           <button
             onClick={() => editor.chain().focus().toggleBlockquote().run()}
-            className={`p-1.5 rounded hover:bg-slate-200 transition-colors ${
+            className={`p-1.5 rounded hover:bg-slate-200 shrink-0 transition-colors ${
               editor.isActive('blockquote') ? 'bg-slate-200 text-blue-600' : 'text-slate-600'
             }`}
             title="Blockquote"
@@ -233,24 +233,24 @@ export default function DocumentEditor({
             <Quote size={15} />
           </button>
 
-          <span className="w-px h-5 bg-slate-300 mx-1" />
+          <span className="w-px h-5 bg-slate-300 mx-0.5 sm:mx-1 shrink-0" />
 
           <button
             onClick={() =>
               editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run()
             }
-            className="p-1.5 rounded hover:bg-slate-200 text-slate-600 transition-colors"
+            className="p-1.5 rounded hover:bg-slate-200 text-slate-600 shrink-0 transition-colors"
             title="Insert Table (3x3)"
           >
             <TableIcon size={15} />
           </button>
 
-          <span className="w-px h-5 bg-slate-300 mx-1" />
+          <span className="w-px h-5 bg-slate-300 mx-0.5 sm:mx-1 shrink-0" />
 
           {/* Add Comment to Selected Text */}
           <button
             onClick={handleAddCommentFromSelection}
-            className="flex items-center gap-1 px-2.5 py-1 rounded-md bg-blue-50 hover:bg-blue-100 text-blue-700 text-xs font-semibold transition-colors ml-auto"
+            className="flex items-center gap-1 px-2.5 py-1 rounded-md bg-blue-50 hover:bg-blue-100 text-blue-700 text-xs font-semibold shrink-0 transition-colors ml-2 sm:ml-auto"
             title="Comment on Selection"
           >
             <MessageSquarePlus size={14} />
@@ -260,8 +260,8 @@ export default function DocumentEditor({
       )}
 
       {/* Editor Content Area */}
-      <div className="flex-1 overflow-y-auto px-4 py-8 flex justify-center">
-        <div className="w-full max-w-4xl bg-white min-h-[700px] shadow-xs rounded-xl border border-slate-100 p-8">
+      <div className="flex-1 overflow-y-auto p-2 sm:px-4 sm:py-8 flex justify-center min-w-0">
+        <div className="w-full max-w-4xl bg-white min-h-[500px] sm:min-h-[700px] shadow-xs rounded-xl border border-slate-100 p-3 sm:p-6 md:p-8 min-w-0">
           <EditorContent editor={editor} />
         </div>
       </div>

@@ -7,10 +7,13 @@ import {
   Plus,
   Trash2,
   Layers,
-  UserCheck
+  UserCheck,
+  X
 } from 'lucide-react';
 
 export default function Sidebar({
+  isOpen,
+  onClose,
   workspaces,
   currentWorkspace,
   onSelectWorkspace,
@@ -47,7 +50,10 @@ export default function Sidebar({
     return (
       <div key={doc.id} className="select-none">
         <div
-          onClick={() => onSelectDocument(doc)}
+          onClick={() => {
+            onSelectDocument(doc);
+            if (onClose) onClose();
+          }}
           style={{ paddingLeft: `${12 + depth * 14}px` }}
           className={`group flex items-center justify-between py-1.5 pr-2 rounded-lg text-sm cursor-pointer transition-all ${
             isSelected
@@ -106,17 +112,21 @@ export default function Sidebar({
   };
 
   return (
-    <aside className="w-64 h-full bg-slate-50/80 border-r border-slate-200 flex flex-col justify-between shrink-0 select-none">
+    <aside
+      className={`fixed inset-y-0 left-0 z-50 md:relative md:z-0 w-72 md:w-64 h-full bg-slate-50 md:bg-slate-50/80 border-r border-slate-200 flex flex-col justify-between shrink-0 select-none shadow-2xl md:shadow-none transition-transform duration-200 ease-in-out ${
+        isOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'
+      }`}
+    >
       {/* Top Section */}
       <div className="flex flex-col flex-1 min-h-0">
         {/* Workspace Brand / Switcher */}
-        <div className="p-3 border-b border-slate-200 relative">
+        <div className="p-3 border-b border-slate-200 relative flex items-center justify-between gap-1">
           <button
             onClick={() => setWorkspaceMenuOpen(!workspaceMenuOpen)}
-            className="w-full flex items-center justify-between p-2 rounded-lg hover:bg-slate-200/70 transition-colors text-left"
+            className="flex-1 min-w-0 flex items-center justify-between p-1.5 rounded-lg hover:bg-slate-200/70 transition-colors text-left"
           >
             <div className="flex items-center gap-2.5 truncate">
-              <div className="w-8 h-8 rounded-lg bg-blue-600 text-white flex items-center justify-center font-bold text-sm shadow-sm">
+              <div className="w-8 h-8 rounded-lg bg-blue-600 text-white flex items-center justify-center font-bold text-sm shadow-sm shrink-0">
                 {currentWorkspace?.icon || '🚀'}
               </div>
               <div className="truncate">
@@ -126,7 +136,16 @@ export default function Sidebar({
                 <p className="text-xs text-slate-500 font-medium">Real-Time Team Hub</p>
               </div>
             </div>
-            <ChevronDown size={16} className="text-slate-400 shrink-0" />
+            <ChevronDown size={16} className="text-slate-400 shrink-0 ml-1" />
+          </button>
+
+          {/* Close Sidebar Button on Mobile */}
+          <button
+            onClick={onClose}
+            className="md:hidden p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-200 rounded-lg transition-colors shrink-0"
+            title="Close sidebar"
+          >
+            <X size={18} />
           </button>
 
           {/* Workspace Dropdown */}

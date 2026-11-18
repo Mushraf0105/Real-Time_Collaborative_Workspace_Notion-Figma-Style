@@ -98,12 +98,12 @@ export default function CollaborativeCanvas({
     };
   }, [provider]);
 
-  // Mouse movement on canvas broadcasts coordinates to peers
-  const handleMouseMove = (e) => {
+  // Pointer movement on canvas broadcasts coordinates to peers
+  const handlePointerMove = (clientX, clientY) => {
     if (!containerRef.current || !provider || !provider.awareness) return;
     const rect = containerRef.current.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
+    const x = clientX - rect.left;
+    const y = clientY - rect.top;
 
     // Broadcast live cursor
     provider.awareness.setLocalStateField('canvasCursor', { x, y });
@@ -122,18 +122,27 @@ export default function CollaborativeCanvas({
     }
   };
 
+  const handleMouseMove = (e) => {
+    handlePointerMove(e.clientX, e.clientY);
+  };
+
+  const handleTouchMove = (e) => {
+    if (!e.touches || e.touches.length === 0) return;
+    const touch = e.touches[0];
+    handlePointerMove(touch.clientX, touch.clientY);
+  };
+
   const handleMouseUp = () => {
     setDraggingNoteId(null);
   };
 
-  const handleStartDrag = (e, note) => {
+  const handleStartDrag = (clientX, clientY, currentTarget, note) => {
     if (isReadOnly) return;
-    e.stopPropagation();
     setDraggingNoteId(note.id);
-    const rect = e.currentTarget.getBoundingClientRect();
+    const rect = currentTarget.getBoundingClientRect();
     setDragOffset({
-      x: e.clientX - rect.left,
-      y: e.clientY - rect.top,
+      x: clientX - rect.left,
+      y: clientY - rect.top,
     });
   };
 
@@ -172,6 +181,8 @@ export default function CollaborativeCanvas({
       ref={containerRef}
       onMouseMove={handleMouseMove}
       onMouseUp={handleMouseUp}
+      onTouchMove={handleTouchMove}
+      onTouchEnd={handleMouseUp}
       className="flex-1 relative h-full w-full bg-slate-50 overflow-hidden select-none"
       style={{
         backgroundImage: 'radial-gradient(#cbd5e1 1px, transparent 1px)',
@@ -179,8 +190,11 @@ export default function CollaborativeCanvas({
       }}
     >
       {/* Top Floating Toolbar */}
-      <div className="absolute top-4 left-6 z-20 flex items-center gap-2 bg-white/90 backdrop-blur-md p-2 rounded-xl shadow-md border border-slate-200">
-        <span className="text-xs font-bold text-slate-500 uppercase px-2">Figma Sticky Canvas</span>
+      <div className="absolute top-3 left-3 sm:top-4 sm:left-6 z-20 flex items-center gap-1.5 sm:gap-2 bg-white/95 backdrop-blur-md p-1.5 sm:p-2 rounded-xl shadow-md border border-slate-200">
+        <span className="text-[10px] sm:text-xs font-bold text-slate-500 uppercase px-1 sm:px-2">
+          <span className="hidden sm:inline">Figma Sticky Canvas</span>
+          <span className="sm:hidden">Canvas</span>
+        </span>
         <div className="flex items-center gap-1">
           {COLORS.map((c) => (
             <button
@@ -189,7 +203,7 @@ export default function CollaborativeCanvas({
               disabled={isReadOnly}
               title={`Add ${c.label} Sticky Note`}
               style={{ backgroundColor: c.bg, borderColor: c.border }}
-              className="w-6 h-6 rounded-md border shadow-xs hover:scale-110 transition-transform flex items-center justify-center text-slate-700 disabled:opacity-50"
+              className="w-5 h-5 sm:w-6 sm:h-6 rounded-md border shadow-xs hover:scale-110 transition-transform flex items-center justify-center text-slate-700 disabled:opacity-50"
             >
               <Plus size={12} />
             </button>
@@ -232,12 +246,21 @@ export default function CollaborativeCanvas({
             top: `${note.y}px`,
             backgroundColor: note.color || '#fef08a',
           }}
-          className="absolute w-56 min-h-[140px] p-3 rounded-xl shadow-lg border border-black/10 flex flex-col justify-between transition-shadow hover:shadow-xl cursor-default group"
+          className="absolute w-44 sm:w-56 min-h-[120px] sm:min-h-[140px] p-2.5 sm:p-3 rounded-xl shadow-lg border border-black/10 flex flex-col justify-between transition-shadow hover:shadow-xl cursor-default group"
         >
           {/* Note Drag Bar */}
           <div
-            onMouseDown={(e) => handleStartDrag(e, note)}
-            className="flex items-center justify-between pb-1 border-b border-black/10 cursor-move"
+            onMouseDown={(e) => {
+              e.stopPropagation();
+              handleStartDrag(e.clientX, e.clientY, e.currentTarget, note);
+            }}
+            onTouchStart={(e) => {
+              if (e.touches && e.touches.length > 0) {
+                e.stopPropagation();
+                handleStartDrag(e.touches[0].clientX, e.touches[0].clientY, e.currentTarget, note);
+              }
+            }}
+            className="flex items-center justify-between pb-1 border-b border-black/10 cursor-move touch-none"
           >
             <div className="flex items-center gap-1 text-[11px] font-bold text-black/60 truncate">
               <Move size={11} />

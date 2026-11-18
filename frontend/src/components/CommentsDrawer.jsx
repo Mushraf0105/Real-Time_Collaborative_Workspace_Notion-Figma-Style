@@ -38,8 +38,14 @@ export default function CommentsDrawer({
   );
 
   return (
-    <div className="w-80 h-full border-l border-slate-200 bg-white flex flex-col justify-between shadow-xl z-30 select-none animate-in slide-in-from-right duration-200">
-      {/* Header */}
+    <>
+      {/* Mobile backdrop */}
+      <div
+        onClick={onClose}
+        className="fixed inset-0 bg-slate-900/30 backdrop-blur-xs z-30 sm:hidden animate-in fade-in duration-150"
+      />
+      <div className="fixed inset-y-0 right-0 sm:relative w-full max-w-xs sm:w-80 h-full border-l border-slate-200 bg-white flex flex-col justify-between shadow-2xl sm:shadow-xl z-40 sm:z-30 select-none animate-in slide-in-from-right duration-200">
+        {/* Header */}
       <div className="p-4 border-b border-slate-200 flex items-center justify-between">
         <div className="flex items-center gap-2">
           <MessageSquare size={16} className="text-blue-600" />
@@ -164,6 +170,7 @@ export default function CommentsDrawer({
         </div>
       </form>
     </div>
+    </>
   );
 }
 

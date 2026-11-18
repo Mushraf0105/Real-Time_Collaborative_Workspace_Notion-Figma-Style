@@ -33,6 +33,7 @@ export default function WorkspacePage() {
 
   // State: Workspace views & drawers
   const [activeMode, setActiveMode] = useState('document'); // 'document' | 'canvas'
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [commentsOpen, setCommentsOpen] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(false);
   const [permissionsOpen, setPermissionsOpen] = useState(false);
@@ -370,9 +371,19 @@ export default function WorkspacePage() {
   };
 
   return (
-    <div className="flex h-screen w-screen overflow-hidden bg-white">
+    <div className="flex h-screen w-screen overflow-hidden bg-white relative">
+      {/* Mobile Backdrop for Sidebar */}
+      {sidebarOpen && (
+        <div
+          onClick={() => setSidebarOpen(false)}
+          className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs z-40 md:hidden animate-in fade-in duration-200"
+        />
+      )}
+
       {/* Sidebar: Workspaces & Document Tree */}
       <Sidebar
+        isOpen={sidebarOpen}
+        onClose={() => setSidebarOpen(false)}
         workspaces={workspaces}
         currentWorkspace={currentWorkspace}
         onSelectWorkspace={handleSelectWorkspace}
@@ -405,6 +416,7 @@ export default function WorkspacePage() {
               userPermission={userPermission}
               onUpdateTitle={handleUpdateTitle}
               onExport={handleExport}
+              onToggleSidebar={() => setSidebarOpen((prev) => !prev)}
             />
 
             {/* Content View: TipTap Document or Infinite Canvas */}

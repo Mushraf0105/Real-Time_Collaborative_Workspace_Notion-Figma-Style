@@ -18,8 +18,20 @@ body {
 
 /* TipTap ProseMirror Styles */
 .tiptap {
-  min-height: 500px;
+  min-height: 400px;
   outline: none;
+  word-break: break-word;
+  overflow-wrap: break-word;
+  min-width: 0;
+}
+
+/* Hide scrollbar utility for clean mobile scrolling toolbars */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }
 
 .tiptap p.is-editor-empty:first-child::before {

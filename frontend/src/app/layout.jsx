@@ -5,6 +5,12 @@ export const metadata = {
   description: 'Notion & Figma hybrid collaborative workspace powered by Yjs CRDT, WebSockets, and Redis Pub/Sub',
 };
 
+export const viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 5,
+};
+
 export default function RootLayout({ children }) {
   return (
     <html lang="en">
