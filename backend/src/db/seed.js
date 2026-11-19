@@ -193,7 +193,29 @@ async function main() {
     },
   });
 
-  console.log('✅ Created 3 collaborative documents with Canvas sticky notes');
+  const doc4 = await prisma.document.create({
+    data: {
+      id: 'doc_excel_model_04',
+      workspaceId: acmeLab.id,
+      title: 'Q4 Financial Model & Budget',
+      icon: '📊',
+      content: '<h1>Q4 Financial Model & Budget</h1><p>Interactive Excel-style collaborative spreadsheet with real-time formula computation (=SUM, =AVG, =COUNT, =MAX, =MIN).</p>',
+      createdBy: alice.id,
+    },
+  });
+
+  const doc5 = await prisma.document.create({
+    data: {
+      id: 'doc_slides_deck_05',
+      workspaceId: acmeLab.id,
+      title: 'SyncSpace Pitch Deck & Strategy',
+      icon: '📽️',
+      content: '<h1>SyncSpace Pitch Deck & Strategy</h1><p>PowerPoint-style collaborative presentation slide deck with presenter mode, themes, and layouts.</p>',
+      createdBy: alice.id,
+    },
+  });
+
+  console.log('✅ Created 5 collaborative documents (Docs, Canvas, Excel Sheets & PowerPoint Slides)');
 
   // 6. Create Granular Document Permissions
   await prisma.documentPermission.createMany({
@@ -202,6 +224,14 @@ async function main() {
       { documentId: doc1.id, userId: bob.id, role: 'EDIT' },
       { documentId: doc1.id, userId: charlie.id, role: 'COMMENT' },
       { documentId: doc1.id, userId: diana.id, role: 'VIEW' },
+      { documentId: doc4.id, userId: alice.id, role: 'EDIT' },
+      { documentId: doc4.id, userId: bob.id, role: 'EDIT' },
+      { documentId: doc4.id, userId: charlie.id, role: 'COMMENT' },
+      { documentId: doc4.id, userId: diana.id, role: 'VIEW' },
+      { documentId: doc5.id, userId: alice.id, role: 'EDIT' },
+      { documentId: doc5.id, userId: bob.id, role: 'EDIT' },
+      { documentId: doc5.id, userId: charlie.id, role: 'COMMENT' },
+      { documentId: doc5.id, userId: diana.id, role: 'VIEW' },
     ],
   });
 

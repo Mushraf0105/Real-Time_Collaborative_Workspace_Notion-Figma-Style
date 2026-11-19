@@ -1,13 +1,14 @@
-# SyncSpace — Real-Time Collaborative Workspace (Notion/Figma Hybrid Style)
+# SyncSpace — Real-Time Collaborative Workspace Suite (Notion + Figma + Excel + PowerPoint)
 
 [![Tech Stack](https://img.shields.io/badge/Stack-Next.js%2014%20%7C%20Yjs%20CRDT%20%7C%20WebSockets%20%7C%20PostgreSQL%20%7C%20Redis%20%7C%20Prisma-blue.svg)](#-required-tech-stack)
 [![CRDT Engine](https://img.shields.io/badge/CRDT-Yjs%20%28Commutative%29-purple.svg)](https://github.com/yjs/yjs)
+[![Suite](https://img.shields.io/badge/Suite-Notion%20%7C%20Figma%20%7C%20Excel%20%7C%20PowerPoint-blueviolet.svg)](#-four-collaborative-workplace-modalities)
 [![Mobile Ready](https://img.shields.io/badge/Mobile-Responsive%20%26%20Touch%20Ready-success.svg)](#-mobile-responsiveness--touch-support)
-[![Export Formats](https://img.shields.io/badge/Export-PDF%20%7C%20DOC%20%7C%20XML%20%7C%20HTML%20%7C%20MD-orange.svg)](#-multi-format-document-export)
+[![Export Formats](https://img.shields.io/badge/Export-PDF%20%7C%20DOC%20%7C%20XML%20%7C%20HTML%20%7C%20MD%20%7C%20CSV%20%7C%20PPT-orange.svg)](#-multi-format-document-export)
 [![Tests Passing](https://img.shields.io/badge/Tests-100%25%20Passing%20%289%2F9%29-brightgreen.svg)](#-concurrency--benchmark-results)
 [![License: ISC](https://img.shields.io/badge/License-ISC-green.svg)](LICENSE)
 
-An enterprise-grade, distributed real-time collaborative workspace combining **Notion-style rich-text block editing** and **Figma-style infinite whiteboard canvas diagramming**. Multiple collaborators edit the same document or canvas simultaneously, observe each other's live colored cursors and presence, drag sticky notes across devices, export content into multiple industry-standard formats, and experience conflict-free synchronization powered by CRDTs.
+An enterprise-grade, distributed real-time collaborative workspace combining **Notion-style rich-text block editing**, **Figma-style infinite whiteboard diagramming**, **Excel-style collaborative spreadsheets**, and **PowerPoint-style presentation slides**. Multiple collaborators edit simultaneously across all four modalities, observe each other's live colored cursors and peer cell selections, drag sticky notes across devices, run spreadsheet formulas, present slide decks in fullscreen, export to 7 industry formats, and experience conflict-free synchronization powered by Yjs CRDTs.
 
 ---
 
@@ -16,17 +17,60 @@ An enterprise-grade, distributed real-time collaborative workspace combining **N
 | Requirement / Guideline | Implementation in SyncSpace | Verification Location |
 |---|---|---|
 | **1. CRDT Conflict Resolution** | Yjs sequence CRDT with doubly-linked items, state vector diffing (`y-protocols/sync`), and mathematical commutativity. | `backend/src/crdt/`, `backend/tests/convergence.test.js` |
-| **2. Auth, Workspaces & Pages** | Prisma ORM with users, multi-workspace switcher, and recursive parent-child document tree. | `backend/prisma/schema.prisma`, `backend/src/db/seed.js`, `frontend/src/components/Sidebar.jsx` |
+| **2. Auth, Workspaces & Pages** | Prisma ORM with users, multi-workspace switcher, recursive parent-child document tree, blank workspace onboarding, and workspace deletion. | `backend/prisma/schema.prisma`, `backend/src/db/seed.js`, `frontend/src/components/Sidebar.jsx` |
 | **3. Rich-Text Editor (TipTap/ProseMirror)** | TipTap WYSIWYG block editor with headings, tables, task lists, code blocks, quote blocks, and Yjs collaboration plugin. | `frontend/src/components/DocumentEditor.jsx` |
-| **4. WebSocket Server (y-websocket)** | Standalone WebSocket server on port `1234` plus Express API on port `5001` with binary sync message handling. | `backend/src/server.js`, `backend/src/crdt/persistence.js` |
-| **5. Presence: Colored Cursors & Avatars** | Real-time presence via `y-protocols/awareness`: colored carets, name tags, live selections, and canvas mouse/touch tracking. | `frontend/src/components/CollaborativeHeader.jsx`, `frontend/src/components/CollaborativeCanvas.jsx` |
-| **6. Comments, Snapshots & Permissions** | Threaded comments on text selections, immutable version history snapshots with 1-click restore, and granular RBAC (`EDIT`, `COMMENT`, `VIEW`). | `backend/src/server.js`, `frontend/src/components/CommentsDrawer.jsx`, `frontend/src/components/VersionHistoryModal.jsx`, `frontend/src/components/PermissionsModal.jsx` |
-| **7. Redis Multi-Instance Scaling** | Redis Pub/Sub cluster bus (`collab:doc:{id}`) with origin attribution for horizontal WebSocket scaling across instances. | `backend/src/redis/redisBus.js`, `backend/src/crdt/persistence.js` |
-| **8. Dual Modality (Notion + Figma)** | Instant toggle between structured document block editing and an infinite 2D sticky notes whiteboard canvas. | `frontend/src/app/page.jsx`, `frontend/src/components/CollaborativeCanvas.jsx` |
-| **9. Multi-Format Document Export** | 1-Click client-side export to **PDF**, Microsoft Word (**DOC**), **XML**, **HTML**, and **Markdown** (**MD**). | `frontend/src/utils/exportDocument.js`, `frontend/src/components/CollaborativeHeader.jsx` |
-| **10. Live Credentials Sync** | Dynamic auto-generation and real-time disk persistence of newly created members into category-segmented JSON credentials. | `backend/src/utils/credentialsSync.js`, `credentials/`, `CREDENTIALS.md` |
-| **11. Mobile Responsiveness & Touch** | Slide-out navigation drawer, backdrop dismiss, adaptive compact header, single-row ribbon toolbar, and touch drag gestures for canvas notes. | `frontend/src/components/Sidebar.jsx`, `frontend/src/components/CollaborativeHeader.jsx`, `frontend/src/components/CollaborativeCanvas.jsx` |
-| **12. Gutenberg & Wikipedia Stress Testing** | 50 concurrent virtual peers benchmarked under heavy typing load with Project Gutenberg & Wikipedia corpora (1,700+ ops/sec). | `backend/tests/stress.test.js`, `TEST_REPORT.md` |
+| **4. Spreadsheet Modality (Excel)** | Real-time CRDT cell editing (`yDoc.getMap('sheet_cells')`), formula engine (`=SUM`, `=AVG`, `=COUNT`, arithmetic), peer cell selection awareness, and CSV export. | `frontend/src/components/CollaborativeSpreadsheet.jsx` |
+| **5. Slide Deck Modality (PowerPoint)** | Real-time synced presentation slides (`yDoc.getMap('slides_data')`), 5 themes, 5 slide layouts, speaker notes, fullscreen Presenter Mode (`F5`), and printable export. | `frontend/src/components/CollaborativeSlides.jsx` |
+| **6. WebSocket Server (y-websocket)** | Standalone WebSocket server on port `1234` plus Express API on port `5001` with binary sync message handling. | `backend/src/server.js`, `backend/src/crdt/persistence.js` |
+| **7. Presence: Colored Cursors & Avatars** | Real-time presence via `y-protocols/awareness`: colored carets, name tags, live selections, peer grid highlights, and canvas mouse/touch tracking. | `frontend/src/components/CollaborativeHeader.jsx`, `frontend/src/components/CollaborativeCanvas.jsx` |
+| **8. Comments, Snapshots & Permissions** | Threaded comments on text selections, immutable version history snapshots with 1-click restore, and granular RBAC (`EDIT`, `COMMENT`, `VIEW`). | `backend/src/server.js`, `frontend/src/components/CommentsDrawer.jsx`, `frontend/src/components/VersionHistoryModal.jsx`, `frontend/src/components/PermissionsModal.jsx` |
+| **9. Redis Multi-Instance Scaling** | Redis Pub/Sub cluster bus (`collab:doc:{id}`) with origin attribution for horizontal WebSocket scaling across instances. | `backend/src/redis/redisBus.js`, `backend/src/crdt/persistence.js` |
+| **10. 4-Way Workplace Modalities** | Instant seamless toggle between Notion Document, Figma Canvas, Excel Spreadsheet, and PowerPoint Slides. | `frontend/src/app/page.jsx`, `frontend/src/components/CollaborativeHeader.jsx` |
+| **11. Multi-Format Document Export** | 1-Click client-side export to **PDF**, Word (**DOC**), **XML**, **HTML**, Markdown (**MD**), Excel Spreadsheet (**CSV**), and PowerPoint (**PPT/PDF**). | `frontend/src/utils/exportDocument.js`, `frontend/src/components/CollaborativeHeader.jsx` |
+| **12. Live Credentials Sync** | Dynamic auto-generation and real-time disk persistence of newly created members into category-segmented JSON credentials. | `backend/src/utils/credentialsSync.js`, `credentials/`, `CREDENTIALS.md` |
+| **13. Mobile Responsiveness & Touch** | Slide-out navigation drawer, backdrop dismiss, adaptive compact header, single-row ribbon toolbar, and touch drag gestures for canvas notes. | `frontend/src/components/Sidebar.jsx`, `frontend/src/components/CollaborativeHeader.jsx`, `frontend/src/components/CollaborativeCanvas.jsx` |
+| **14. Gutenberg & Wikipedia Stress Testing** | 50 concurrent virtual peers benchmarked under heavy typing load with Project Gutenberg & Wikipedia corpora (1,700+ ops/sec). | `backend/tests/stress.test.js`, `TEST_REPORT.md` |
+
+---
+
+## 🎨 Four Collaborative Workplace Modalities
+
+Users can switch between four distinct real-time productivity modalities in any document via the header mode switcher:
+
+```
+┌────────────────────────────────────────────────────────────────────────┐
+│  [📝 Document (Notion)]  [🎨 Canvas (Figma)]  [📊 Spreadsheet (Excel)]  [📽️ Slides (PowerPoint)] │
+└────────────────────────────────────────────────────────────────────────┘
+```
+
+### 1. 📝 Document Editor (Notion-Style)
+- **Engine:** TipTap & ProseMirror backed by `y-prosemirror`.
+- **Features:** Headings (H1–H3), interactive tables, task checklists, block quotes, formatted code blocks.
+- **Collaboration:** Real-time character-by-character synchronization, remote collaborator carets with names and colors, and threaded text-anchor comments.
+
+### 2. 🎨 Infinite Whiteboard Canvas (Figma-Style)
+- **Engine:** Scalable 2D coordinate system synced via `yDoc.getMap('canvas_notes')`.
+- **Features:** Multi-color sticky notes (Yellow, Blue, Green, Pink, Purple), spatial dragging, and note deletion.
+- **Collaboration:** Live remote cursor tracking with collaborator names and colored pointers; full touch drag support on mobile devices.
+
+### 3. 📊 Collaborative Spreadsheet (Excel-Style)
+- **Engine:** CRDT cell matrix synced via `yDoc.getMap('sheet_cells')`.
+- **Features:** 
+  - Dynamic rows and columns (A–Z) with cell formatting (Bold, Italic, Left/Center/Right alignment).
+  - Number formats: Currency (`$`) and Percentage (`%`).
+  - **Live Formula Engine:** Evaluates `=SUM(A1:B5)`, `=AVG(...)`, `=COUNT(...)`, and arithmetic expressions in real time.
+  - Optional pre-seeded Financial Model template button.
+- **Collaboration:** Live peer cell selection awareness (see which cell teammates are editing in real time).
+- **Export:** 1-Click export to standard CSV.
+
+### 4. 📽️ Presentation Slides (PowerPoint-Style)
+- **Engine:** Slide deck data model synced via `yDoc.getMap('slides_data')`.
+- **Features:**
+  - 5 Themes: **Modern Dark**, **Minimal Light**, **Ocean Blue**, **Sunset Rose**, and **Forest Emerald**.
+  - 5 Slide Layouts: **Title Slide**, **Bullet Points**, **Key Metric & KPI**, **Comparison Split**, and **Quote & Callout**.
+  - Integrated Speaker Notes panel for meeting prep.
+  - **Fullscreen Presenter Mode (`F5`)**: Distraction-free presentation view with keyboard navigation (Arrow keys, Spacebar, Escape).
+- **Export:** 1-Click 16:9 printable presentation export.
 
 ---
 
@@ -61,10 +105,11 @@ npm run dev:backend
 In a second terminal window, start the Next.js frontend:
 
 ```bash
+# 4. Start Next.js Frontend (Port 3000)
 npm run dev:frontend
 ```
 
-Visit **`http://localhost:3000`** in your browser. Open multiple browser tabs (or incognito windows) to test live typing, colored cursor presence, canvas dragging, and comments in real time!
+Visit **`http://localhost:3000`** in your browser. Open multiple browser tabs (or incognito windows) to test live typing, colored cursor presence, spreadsheet calculations, slide decks, canvas dragging, and comments in real time!
 
 ---
 
@@ -84,15 +129,26 @@ This starts:
 
 ---
 
+## 🏢 Workspace Lifecycle Management
+
+SyncSpace provides complete workspace organization:
+- **Zero Demo Data in New Workspaces:** Creating a new workspace initializes a clean canvas without dummy records, presenting quick-start templates (Blank Document, Blank Spreadsheet, Blank Presentation, Blank Whiteboard) so users enter their own data directly.
+- **Workspace Switcher:** Seamlessly switch between team workspaces with real-time document count badges.
+- **Workspace Deletion:** Delete workspaces from the sidebar with safe cascade cleanup in Prisma and protection against deleting the final remaining workspace.
+- **Hierarchical Document Tree:** Create nested sub-documents under any parent page with expandable tree views.
+
+---
+
 ## 📱 Mobile Responsiveness & Touch Support
 
 SyncSpace is engineered to deliver a native app experience on mobile smartphones, tablets, and desktop monitors:
 
 - **Mobile Navigation Drawer**: On screens `< 768px`, the sidebar smoothly slides out as an overlay drawer with a backdrop. Tapping any document or outside the drawer auto-dismisses it.
-- **Adaptive Header Controls**: The top navigation bar dynamically adjusts for compact screens, with a mobile hamburger menu button, abbreviated mode switches (**Doc** / **Canvas**), and icon-only action pills.
-- **Single-Row Formatting Toolbar**: TipTap formatting controls scroll smoothly on a horizontal ribbon with invisible scrollbars (`.no-scrollbar`), preventing multi-row height jumps.
+- **Adaptive Header Controls**: The top navigation bar dynamically adjusts for compact screens, with a mobile hamburger menu button, abbreviated mode switches (**Doc**, **Canvas**, **Excel**, **Slides**), and icon-only action pills.
+- **Single-Row Formatting Toolbar**: Formatting controls scroll smoothly on a horizontal ribbon with invisible scrollbars (`.no-scrollbar`), preventing multi-row height jumps.
 - **Word-Wrap Safeguards**: ProseMirror styling uses `break-words` and `min-w-0` to eliminate single-character column collapses on narrow viewports.
-- **Touch Drag for Figma Canvas**: Sticky notes on the 2D whiteboard canvas listen to `onTouchStart`, `onTouchMove`, and `onTouchEnd` events for fluid dragging on iPhones, Android phones, and iPads.
+- **Touch Drag for Figma Canvas**: Sticky notes on the 2D whiteboard canvas listen to `onTouchStart`, `onTouchMove`, `onTouchEnd`, and `onTouchCancel` events for fluid dragging on iPhones, Android phones, and iPads.
+- **Stacking Context Isolation**: Header dropdown menus use isolated z-index stacking (`isolate`, `relative z-30`) so sticky spreadsheet headers never bleed through navigation menus.
 - **Mobile Comments Overlay**: The comments side-panel functions as a full slide-over drawer with backdrop dismiss on mobile viewports.
 
 ---
@@ -106,6 +162,8 @@ Collaborators can export their live documents at any time from the **Export** me
 3. **XML Document (`.xml`)**: Comprehensive data interchange schema containing document ID, metadata timestamps, author attribution, TipTap JSON tree, and raw text.
 4. **HTML Webpage (`.html`)**: Self-contained semantic HTML5 document with embedded styling.
 5. **Markdown (`.md`)**: Clean plain-text formatting ideal for developer documentation and notes.
+6. **Excel Spreadsheet (`.csv`)**: Clean CSV export of active spreadsheet grid values.
+7. **PowerPoint Deck (`.pdf`)**: Formatted 16:9 presentation print export for slides.
 
 ---
 
@@ -173,7 +231,8 @@ npm run test:stress
 FS-02/
 ├── backend/
 │   ├── prisma/
-│   │   └── schema.prisma       # Prisma ORM schema (Users, Workspaces, Docs, Comments, Snapshots)
+│   │   ├── schema.prisma       # Prisma ORM schema (Users, Workspaces, Docs, Comments, Snapshots)
+│   │   └── dev.db              # Portable persistent SQLite database
 │   ├── src/
 │   │   ├── crdt/
 │   │   │   └── persistence.js  # Binary Yjs state snapshot & debounced DB persistence
@@ -197,15 +256,17 @@ FS-02/
 │   │   │   ├── layout.jsx      # Root HTML layout, viewport settings & fonts
 │   │   │   └── page.jsx        # Main collaborative workspace container & drawer state
 │   │   ├── components/
-│   │   │   ├── CollaborativeCanvas.jsx  # Figma-style 2D sticky canvas with touch support
-│   │   │   ├── CollaborativeHeader.jsx  # Presence avatars, title, mode toggle, export
-│   │   │   ├── CommentsDrawer.jsx       # Threaded comments drawer with text anchor & mobile overlay
-│   │   │   ├── DocumentEditor.jsx       # TipTap block editor with horizontal scroll ribbon
-│   │   │   ├── PermissionsModal.jsx     # Granular access control & new member creation
-│   │   │   ├── Sidebar.jsx              # Responsive drawer, workspace switcher & doc hierarchy
-│   │   │   └── VersionHistoryModal.jsx  # Revision snapshots & 1-click restore
+│   │   │   ├── CollaborativeCanvas.jsx      # Figma-style 2D sticky canvas with touch support
+│   │   │   ├── CollaborativeHeader.jsx      # 4-Way mode switcher, presence avatars, export
+│   │   │   ├── CollaborativeSlides.jsx      # PowerPoint-style presentations with Presenter Mode
+│   │   │   ├── CollaborativeSpreadsheet.jsx # Excel-style spreadsheet with live formula engine
+│   │   │   ├── CommentsDrawer.jsx           # Threaded comments drawer with text anchor & mobile overlay
+│   │   │   ├── DocumentEditor.jsx           # TipTap block editor with horizontal scroll ribbon
+│   │   │   ├── PermissionsModal.jsx         # Granular access control & new member creation
+│   │   │   ├── Sidebar.jsx                  # Responsive drawer, workspace switcher & doc hierarchy
+│   │   │   └── VersionHistoryModal.jsx      # Revision snapshots & 1-click restore
 │   │   └── utils/
-│   │       └── exportDocument.js        # Multi-format document exporter (PDF, DOC, XML, HTML, MD)
+│   │       └── exportDocument.js            # Multi-format exporter (PDF, DOC, XML, HTML, MD, CSV, PPT)
 │   ├── Dockerfile
 │   ├── next.config.mjs
 │   ├── tailwind.config.cjs
@@ -230,9 +291,12 @@ FS-02/
 
 ## 📄 Deliverables Verification Checklist
 
-- [x] **Working demo:** Dual-modality Notion block editor & Figma whiteboard canvas with live colored cursors.
+- [x] **Working demo:** 4-Way Modalities: Notion block editor, Figma whiteboard canvas, Excel spreadsheet, PowerPoint slides.
 - [x] **Mobile & Touch Support:** Responsive drawer navigation, adaptive compact header, touch-enabled canvas notes.
-- [x] **Document Exporter:** 1-Click export to PDF, Word DOC, XML, HTML, and Markdown.
+- [x] **Spreadsheet Formula Engine:** Real-time `=SUM`, `=AVG`, `=COUNT`, arithmetic, and peer cell selection awareness.
+- [x] **PowerPoint Presentation Mode:** 5 themes, 5 slide layouts, speaker notes, fullscreen Presenter Mode (`F5`).
+- [x] **Workspace Lifecycle:** Multi-workspace switcher, clean zero-demo-data creation, safe cascade deletion.
+- [x] **Multi-Format Document Exporter:** 1-Click export to PDF, Word DOC, XML, HTML, Markdown, CSV, and Presentation.
 - [x] **Live Credentials Persistence:** Automated synchronization of new users into `credentials/*.json`.
 - [x] **GitHub repository ready:** Clean commits, `.gitignore`, modular architecture, and full setup instructions.
 - [x] **Architecture diagram & API docs:** [ARCHITECTURE.md](ARCHITECTURE.md) and [API_DOCUMENTATION.md](API_DOCUMENTATION.md).

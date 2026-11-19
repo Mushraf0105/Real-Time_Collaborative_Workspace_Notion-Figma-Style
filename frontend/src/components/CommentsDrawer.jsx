@@ -115,7 +115,7 @@ export default function CommentsDrawer({
                   >
                     {comment.author?.name?.charAt(0) || 'U'}
                   </div>
-                  <span className="font-bold text-slate-800">{comment.author?.name}</span>
+                  <span className="font-bold text-slate-800">{comment.author?.name || 'Collaborator'}</span>
                 </div>
                 <button
                   onClick={() => onToggleResolve(comment.id, !comment.isResolved)}

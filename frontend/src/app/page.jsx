@@ -7,15 +7,25 @@ import Sidebar from '../components/Sidebar';
 import CollaborativeHeader from '../components/CollaborativeHeader';
 import DocumentEditor from '../components/DocumentEditor';
 import CollaborativeCanvas from '../components/CollaborativeCanvas';
+import CollaborativeSpreadsheet from '../components/CollaborativeSpreadsheet';
+import CollaborativeSlides from '../components/CollaborativeSlides';
 import CommentsDrawer from '../components/CommentsDrawer';
 import VersionHistoryModal from '../components/VersionHistoryModal';
 import PermissionsModal from '../components/PermissionsModal';
+import {
+  FileText,
+  FileSpreadsheet,
+  Presentation,
+  Palette
+} from 'lucide-react';
 import {
   exportToPDF,
   exportToWord,
   exportToXML,
   exportToHTML,
   exportToMarkdown,
+  exportSheetToCSV,
+  exportSlidesToPresentation,
 } from '../utils/exportDocument';
 
 const API_BASE = 'http://localhost:5001/api';
@@ -99,7 +109,12 @@ export default function WorkspacePage() {
 
   // 3. Load Metadata (Comments, Snapshots, Permissions) when currentDocument changes
   useEffect(() => {
-    if (!currentDocument) return;
+    if (!currentDocument) {
+      setComments([]);
+      setSnapshots([]);
+      setPermissions([]);
+      return;
+    }
 
     // Fetch comments
     fetch(`${API_BASE}/documents/${currentDocument.id}/comments`)
@@ -195,23 +210,95 @@ export default function WorkspacePage() {
     loadDocuments(ws.id);
   };
 
-  const handleCreateDocument = async (parentId = null) => {
+  const handleCreateWorkspace = async ({ name, icon, description }) => {
+    try {
+      const res = await fetch(`${API_BASE}/workspaces`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: name.trim(),
+          icon: icon || '📁',
+          description: description?.trim() || '',
+          ownerId: currentUser?.id,
+        }),
+      });
+      const newWs = await res.json();
+      setWorkspaces((prev) => [...prev, newWs]);
+      setCurrentWorkspace(newWs);
+
+      // Start the new workspace completely clean with 0 documents (no demo data)
+      setDocuments([]);
+      setCurrentDocument(null);
+      return newWs;
+    } catch (err) {
+      console.error('Failed to create workspace:', err);
+    }
+  };
+
+  const handleDeleteWorkspace = async (workspaceId) => {
+    if (workspaces.length <= 1) {
+      alert('Cannot delete the only remaining workspace.');
+      return;
+    }
+    try {
+      const res = await fetch(`${API_BASE}/workspaces/${workspaceId}`, {
+        method: 'DELETE',
+      });
+      if (!res.ok) {
+        const errData = await res.json();
+        alert(errData.error || 'Failed to delete workspace');
+        return;
+      }
+      const remaining = workspaces.filter((w) => w.id !== workspaceId);
+      setWorkspaces(remaining);
+      if (currentWorkspace?.id === workspaceId) {
+        const nextWs = remaining.length > 0 ? remaining[0] : null;
+        setCurrentWorkspace(nextWs);
+        if (nextWs) {
+          loadDocuments(nextWs.id);
+        } else {
+          setDocuments([]);
+          setCurrentDocument(null);
+        }
+      }
+    } catch (err) {
+      console.error('Failed to delete workspace:', err);
+    }
+  };
+
+  const handleSelectDocument = (doc) => {
+    setCurrentDocument(doc);
+    if (doc?.icon === '📊') {
+      setActiveMode('spreadsheet');
+    } else if (doc?.icon === '📽️') {
+      setActiveMode('slides');
+    } else if (doc?.icon === '🎨') {
+      setActiveMode('canvas');
+    }
+  };
+
+  const handleCreateDocument = async (parentId = null, template = null) => {
     if (!currentWorkspace) return;
     try {
+      const title = template?.title || 'Untitled Document';
+      const icon = template?.icon || '📝';
       const res = await fetch(`${API_BASE}/documents`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           workspaceId: currentWorkspace.id,
           parentId,
-          title: 'Untitled Document',
-          icon: '📄',
+          title,
+          icon,
           createdBy: currentUser?.id,
         }),
       });
       const newDoc = await res.json();
       setDocuments((prev) => [...prev, newDoc]);
       setCurrentDocument(newDoc);
+      if (template?.mode) {
+        setActiveMode(template.mode);
+      }
     } catch (err) {
       console.error('Failed to create document:', err);
     }
@@ -365,6 +452,21 @@ export default function WorkspacePage() {
       case 'markdown':
         exportToMarkdown(title, textContent);
         break;
+      case 'csv': {
+        const sheetCells = yDoc?.getMap('sheet_cells');
+        const cellsObj = {};
+        sheetCells?.forEach((v, k) => {
+          cellsObj[k] = v;
+        });
+        exportSheetToCSV(title, cellsObj);
+        break;
+      }
+      case 'presentation': {
+        const slidesMap = yDoc?.getMap('slides_data');
+        const deck = slidesMap?.get('deck') || [];
+        exportSlidesToPresentation(title, deck);
+        break;
+      }
       default:
         break;
     }
@@ -387,9 +489,11 @@ export default function WorkspacePage() {
         workspaces={workspaces}
         currentWorkspace={currentWorkspace}
         onSelectWorkspace={handleSelectWorkspace}
+        onCreateWorkspace={handleCreateWorkspace}
+        onDeleteWorkspace={handleDeleteWorkspace}
         documents={documents}
         currentDocument={currentDocument}
-        onSelectDocument={setCurrentDocument}
+        onSelectDocument={handleSelectDocument}
         onCreateDocument={handleCreateDocument}
         onDeleteDocument={handleDeleteDocument}
         users={users}
@@ -419,8 +523,8 @@ export default function WorkspacePage() {
               onToggleSidebar={() => setSidebarOpen((prev) => !prev)}
             />
 
-            {/* Content View: TipTap Document or Infinite Canvas */}
-            <div className="flex-1 flex overflow-hidden relative">
+            {/* Content View: TipTap Document, Infinite Canvas, Excel Spreadsheet, or PowerPoint Slides */}
+            <div className="flex-1 flex overflow-hidden relative isolate">
               {activeMode === 'document' ? (
                 yDoc && provider ? (
                   <DocumentEditor
@@ -440,7 +544,7 @@ export default function WorkspacePage() {
                     Connecting to CRDT provider...
                   </div>
                 )
-              ) : (
+              ) : activeMode === 'canvas' ? (
                 <CollaborativeCanvas
                   key={`canvas-${currentDocument.id}`}
                   yDoc={yDoc}
@@ -448,6 +552,24 @@ export default function WorkspacePage() {
                   currentUser={currentUser}
                   userPermission={userPermission}
                   initialData={currentDocument.canvasData}
+                />
+              ) : activeMode === 'spreadsheet' ? (
+                <CollaborativeSpreadsheet
+                  key={`sheet-${currentDocument.id}`}
+                  yDoc={yDoc}
+                  provider={provider}
+                  currentUser={currentUser}
+                  userPermission={userPermission}
+                  onExportCSV={() => handleExport('csv')}
+                />
+              ) : (
+                <CollaborativeSlides
+                  key={`slides-${currentDocument.id}`}
+                  yDoc={yDoc}
+                  provider={provider}
+                  currentUser={currentUser}
+                  userPermission={userPermission}
+                  onExportSlides={() => handleExport('presentation')}
                 />
               )}
 
@@ -464,15 +586,62 @@ export default function WorkspacePage() {
             </div>
           </>
         ) : (
-          <div className="flex-1 flex flex-col items-center justify-center text-slate-400 gap-2">
-            <span className="text-3xl">📁</span>
-            <p className="text-sm font-semibold text-slate-600">No document selected</p>
-            <button
-              onClick={() => handleCreateDocument(null)}
-              className="text-xs font-semibold text-blue-600 bg-blue-50 hover:bg-blue-100 px-3 py-1.5 rounded-lg transition-colors"
-            >
-              + Create a new document
-            </button>
+          <div className="flex-1 flex flex-col items-center justify-center p-6 text-center select-none bg-slate-50/50">
+            <div className="w-16 h-16 rounded-2xl bg-white border border-slate-200 shadow-sm flex items-center justify-center text-3xl mb-4">
+              {currentWorkspace?.icon || '📁'}
+            </div>
+            <h2 className="text-lg font-bold text-slate-800 mb-1">
+              {currentWorkspace ? `${currentWorkspace.name} is ready` : 'No workspace selected'}
+            </h2>
+            <p className="text-xs text-slate-500 max-w-sm mb-6">
+              This workspace is completely clean. Choose a format to start entering your own data:
+            </p>
+
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 max-w-xl w-full">
+              <button
+                onClick={() => handleCreateDocument(null, { title: 'Untitled Document', icon: '📝', mode: 'document' })}
+                className="flex flex-col items-center p-4 rounded-xl bg-white border border-slate-200 hover:border-blue-400 hover:shadow-md transition-all group text-center cursor-pointer"
+              >
+                <div className="w-10 h-10 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center mb-2 group-hover:scale-110 transition-transform">
+                  <FileText size={20} />
+                </div>
+                <span className="text-xs font-bold text-slate-800">Blank Document</span>
+                <span className="text-[10px] text-slate-400">Notion-style</span>
+              </button>
+
+              <button
+                onClick={() => handleCreateDocument(null, { title: 'Untitled Spreadsheet', icon: '📊', mode: 'spreadsheet' })}
+                className="flex flex-col items-center p-4 rounded-xl bg-white border border-slate-200 hover:border-emerald-400 hover:shadow-md transition-all group text-center cursor-pointer"
+              >
+                <div className="w-10 h-10 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center mb-2 group-hover:scale-110 transition-transform">
+                  <FileSpreadsheet size={20} />
+                </div>
+                <span className="text-xs font-bold text-slate-800">Blank Spreadsheet</span>
+                <span className="text-[10px] text-slate-400">Excel-style</span>
+              </button>
+
+              <button
+                onClick={() => handleCreateDocument(null, { title: 'Untitled Presentation', icon: '📽️', mode: 'slides' })}
+                className="flex flex-col items-center p-4 rounded-xl bg-white border border-slate-200 hover:border-amber-400 hover:shadow-md transition-all group text-center cursor-pointer"
+              >
+                <div className="w-10 h-10 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center mb-2 group-hover:scale-110 transition-transform">
+                  <Presentation size={20} />
+                </div>
+                <span className="text-xs font-bold text-slate-800">Blank Presentation</span>
+                <span className="text-[10px] text-slate-400">PowerPoint-style</span>
+              </button>
+
+              <button
+                onClick={() => handleCreateDocument(null, { title: 'Untitled Whiteboard', icon: '🎨', mode: 'canvas' })}
+                className="flex flex-col items-center p-4 rounded-xl bg-white border border-slate-200 hover:border-purple-400 hover:shadow-md transition-all group text-center cursor-pointer"
+              >
+                <div className="w-10 h-10 rounded-lg bg-purple-50 text-purple-600 flex items-center justify-center mb-2 group-hover:scale-110 transition-transform">
+                  <Palette size={20} />
+                </div>
+                <span className="text-xs font-bold text-slate-800">Blank Whiteboard</span>
+                <span className="text-[10px] text-slate-400">Figma-style</span>
+              </button>
+            </div>
           </div>
         )}
       </div>

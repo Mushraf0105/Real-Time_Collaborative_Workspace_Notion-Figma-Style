@@ -8,7 +8,11 @@ import {
   Trash2,
   Layers,
   UserCheck,
-  X
+  X,
+  FileText,
+  FileSpreadsheet,
+  Presentation,
+  Palette
 } from 'lucide-react';
 
 export default function Sidebar({
@@ -17,6 +21,8 @@ export default function Sidebar({
   workspaces,
   currentWorkspace,
   onSelectWorkspace,
+  onCreateWorkspace,
+  onDeleteWorkspace,
   documents,
   currentDocument,
   onSelectDocument,
@@ -30,6 +36,12 @@ export default function Sidebar({
 }) {
   const [workspaceMenuOpen, setWorkspaceMenuOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const [newPageMenuOpen, setNewPageMenuOpen] = useState(false);
+  const [showCreateWsModal, setShowCreateWsModal] = useState(false);
+  const [wsName, setWsName] = useState('');
+  const [wsIcon, setWsIcon] = useState('🚀');
+  const [wsDesc, setWsDesc] = useState('');
+  const [isCreatingWs, setIsCreatingWs] = useState(false);
   const [expandedDocs, setExpandedDocs] = useState({});
 
   const toggleExpand = (docId, e) => {
@@ -150,44 +162,147 @@ export default function Sidebar({
 
           {/* Workspace Dropdown */}
           {workspaceMenuOpen && (
-            <div className="absolute top-full left-3 right-3 mt-1 bg-white border border-slate-200 rounded-xl shadow-xl z-50 p-1.5 space-y-1">
+            <>
+              <div
+                className="fixed inset-0 z-40"
+                onClick={() => setWorkspaceMenuOpen(false)}
+              />
+              <div className="absolute top-full left-3 right-3 mt-1 bg-white border border-slate-200 rounded-xl shadow-xl z-50 p-1.5 space-y-1">
               <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider px-2 py-1">
                 Workspaces
               </div>
               {workspaces.map((ws) => (
-                <button
+                <div
                   key={ws.id}
                   onClick={() => {
                     onSelectWorkspace(ws);
                     setWorkspaceMenuOpen(false);
                   }}
-                  className={`w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-sm text-left transition-colors ${
+                  className={`group/ws w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg text-sm cursor-pointer transition-colors ${
                     ws.id === currentWorkspace?.id
                       ? 'bg-blue-50 text-blue-700 font-semibold'
                       : 'hover:bg-slate-100 text-slate-700'
                   }`}
                 >
-                  <span>{ws.icon || '📁'}</span>
-                  <span className="truncate">{ws.name}</span>
-                </button>
+                  <div className="flex items-center gap-2 truncate">
+                    <span>{ws.icon || '📁'}</span>
+                    <span className="truncate">{ws.name}</span>
+                  </div>
+
+                  {workspaces.length > 1 && onDeleteWorkspace && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (
+                          confirm(
+                            `Delete workspace "${ws.name}"? All its documents, spreadsheets, and slides will be permanently deleted.`
+                          )
+                        ) {
+                          onDeleteWorkspace(ws.id);
+                        }
+                      }}
+                      className="opacity-0 group-hover/ws:opacity-100 p-1 text-slate-400 hover:text-rose-600 rounded hover:bg-slate-200 transition-opacity shrink-0"
+                      title={`Delete "${ws.name}" workspace`}
+                    >
+                      <Trash2 size={13} />
+                    </button>
+                  )}
+                </div>
               ))}
+
+              <div className="pt-1 mt-1 border-t border-slate-100">
+                <button
+                  onClick={() => {
+                    setWorkspaceMenuOpen(false);
+                    setShowCreateWsModal(true);
+                  }}
+                  className="w-full flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-lg text-xs font-semibold text-blue-600 hover:bg-blue-50 transition-colors"
+                >
+                  <Plus size={13} />
+                  <span>+ Create New Workspace</span>
+                </button>
+              </div>
             </div>
+            </>
           )}
         </div>
 
         {/* Documents Tree Header & Button */}
-        <div className="px-3 pt-4 pb-2 flex items-center justify-between">
+        <div className="px-3 pt-4 pb-2 flex items-center justify-between relative">
           <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
             <Layers size={13} />
-            Documents & Canvas
+            Documents & Workspace
           </span>
-          <button
-            onClick={() => onCreateDocument(null)}
-            className="flex items-center gap-1 text-xs font-semibold text-blue-600 hover:text-blue-800 hover:bg-blue-50 px-2 py-1 rounded-md transition-colors"
-          >
-            <Plus size={14} />
-            New Page
-          </button>
+          <div className="relative">
+            <button
+              onClick={() => setNewPageMenuOpen(!newPageMenuOpen)}
+              className="flex items-center gap-1 text-xs font-semibold text-blue-600 hover:text-blue-800 hover:bg-blue-50 px-2 py-1 rounded-md transition-colors shadow-xs"
+              title="Create a new document, spreadsheet, presentation, or whiteboard"
+            >
+              <Plus size={14} />
+              <span>New</span>
+              <ChevronDown size={11} className="text-blue-400" />
+            </button>
+
+            {/* New Document Type Dropdown */}
+            {newPageMenuOpen && (
+              <>
+                <div
+                  className="fixed inset-0 z-40"
+                  onClick={() => setNewPageMenuOpen(false)}
+                />
+                <div className="absolute top-full right-0 mt-1 w-48 bg-white border border-slate-200 rounded-xl shadow-xl z-50 p-1.5 space-y-0.5 animate-in fade-in duration-100">
+                <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider px-2 py-1">
+                  Create New
+                </div>
+
+                <button
+                  onClick={() => {
+                    onCreateDocument(null, { title: 'Untitled Document', icon: '📝', mode: 'document' });
+                    setNewPageMenuOpen(false);
+                  }}
+                  className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs text-slate-700 hover:bg-blue-50 hover:text-blue-700 transition-colors text-left"
+                >
+                  <FileText size={14} className="text-blue-600 shrink-0" />
+                  <span>Document (Notion)</span>
+                </button>
+
+                <button
+                  onClick={() => {
+                    onCreateDocument(null, { title: 'Q4 Financial Model', icon: '📊', mode: 'spreadsheet' });
+                    setNewPageMenuOpen(false);
+                  }}
+                  className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs text-slate-700 hover:bg-emerald-50 hover:text-emerald-700 transition-colors text-left"
+                >
+                  <FileSpreadsheet size={14} className="text-emerald-600 shrink-0" />
+                  <span>Spreadsheet (Excel)</span>
+                </button>
+
+                <button
+                  onClick={() => {
+                    onCreateDocument(null, { title: 'Product Pitch Deck', icon: '📽️', mode: 'slides' });
+                    setNewPageMenuOpen(false);
+                  }}
+                  className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs text-slate-700 hover:bg-amber-50 hover:text-amber-700 transition-colors text-left"
+                >
+                  <Presentation size={14} className="text-amber-500 shrink-0" />
+                  <span>Presentation (PowerPoint)</span>
+                </button>
+
+                <button
+                  onClick={() => {
+                    onCreateDocument(null, { title: 'Sticky Whiteboard', icon: '🎨', mode: 'canvas' });
+                    setNewPageMenuOpen(false);
+                  }}
+                  className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs text-slate-700 hover:bg-purple-50 hover:text-purple-700 transition-colors text-left"
+                >
+                  <Palette size={14} className="text-purple-600 shrink-0" />
+                  <span>Whiteboard (Figma)</span>
+                </button>
+              </div>
+              </>
+            )}
+          </div>
         </div>
 
         {/* Documents Tree Scrollable Container */}
@@ -252,7 +367,12 @@ export default function Sidebar({
 
           {/* Persona Menu Popup */}
           {userMenuOpen && (
-            <div className="absolute bottom-full left-0 right-0 mb-1.5 bg-white border border-slate-200 rounded-xl shadow-xl z-50 p-1.5 space-y-1">
+            <>
+              <div
+                className="fixed inset-0 z-40"
+                onClick={() => setUserMenuOpen(false)}
+              />
+              <div className="absolute bottom-full left-0 right-0 mb-1.5 bg-white border border-slate-200 rounded-xl shadow-xl z-50 p-1.5 space-y-1">
               <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider px-2 py-1">
                 Switch Assessment Persona
               </div>
@@ -293,9 +413,124 @@ export default function Sidebar({
                 </button>
               </div>
             </div>
+            </>
           )}
         </div>
       </div>
+
+      {/* Create Workspace Modal */}
+      {showCreateWsModal && (
+        <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in duration-150 select-none">
+          <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-sm overflow-hidden p-5 space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <div className="flex items-center gap-2">
+                <span className="text-xl">{wsIcon}</span>
+                <h3 className="font-bold text-sm text-slate-800">Create New Workspace</h3>
+              </div>
+              <button
+                onClick={() => setShowCreateWsModal(false)}
+                className="p-1 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100"
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            <form
+              onSubmit={async (e) => {
+                e.preventDefault();
+                if (!wsName.trim()) return;
+                setIsCreatingWs(true);
+                try {
+                  if (onCreateWorkspace) {
+                    await onCreateWorkspace({
+                      name: wsName.trim(),
+                      icon: wsIcon,
+                      description: wsDesc.trim(),
+                    });
+                  }
+                  setWsName('');
+                  setWsDesc('');
+                  setShowCreateWsModal(false);
+                } catch (err) {
+                  console.error(err);
+                } finally {
+                  setIsCreatingWs(false);
+                }
+              }}
+              className="space-y-3"
+            >
+              {/* Icon Picker */}
+              <div>
+                <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1">
+                  Workspace Icon
+                </label>
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  {['🚀', '💡', '⚡', '🏢', '🧪', '🎨', '📊', '🌐'].map((emoji) => (
+                    <button
+                      type="button"
+                      key={emoji}
+                      onClick={() => setWsIcon(emoji)}
+                      className={`w-8 h-8 rounded-lg flex items-center justify-center text-base border transition-all ${
+                        wsIcon === emoji
+                          ? 'border-blue-500 bg-blue-50 scale-110 shadow-xs'
+                          : 'border-slate-200 hover:bg-slate-50'
+                      }`}
+                    >
+                      {emoji}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Name */}
+              <div>
+                <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1">
+                  Workspace Name
+                </label>
+                <input
+                  type="text"
+                  value={wsName}
+                  onChange={(e) => setWsName(e.target.value)}
+                  placeholder="e.g. AI Research Lab, Product Squad..."
+                  required
+                  className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg outline-none focus:border-blue-500 focus:bg-white transition-colors"
+                />
+              </div>
+
+              {/* Description */}
+              <div>
+                <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1">
+                  Description (Optional)
+                </label>
+                <input
+                  type="text"
+                  value={wsDesc}
+                  onChange={(e) => setWsDesc(e.target.value)}
+                  placeholder="e.g. Core team collaborative space..."
+                  className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg outline-none focus:border-blue-500 focus:bg-white transition-colors"
+                />
+              </div>
+
+              <div className="flex justify-end gap-2 pt-2 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setShowCreateWsModal(false)}
+                  className="px-3 py-1.5 text-xs text-slate-600 hover:bg-slate-100 rounded-lg transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={!wsName.trim() || isCreatingWs}
+                  className="px-3 py-1.5 text-xs font-semibold bg-blue-600 hover:bg-blue-700 text-white rounded-lg disabled:opacity-50 transition-colors shadow-xs"
+                >
+                  {isCreatingWs ? 'Creating...' : 'Create Workspace'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </aside>
   );
 }

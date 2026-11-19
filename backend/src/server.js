@@ -178,6 +178,26 @@ app.post('/api/workspaces', async (req, res) => {
   }
 });
 
+app.delete('/api/workspaces/:workspaceId', async (req, res) => {
+  try {
+    const { workspaceId } = req.params;
+
+    // Check count of remaining workspaces - prevent deleting last workspace
+    const count = await prisma.workspace.count();
+    if (count <= 1) {
+      return res.status(400).json({ error: 'Cannot delete the only remaining workspace.' });
+    }
+
+    await prisma.workspace.delete({
+      where: { id: workspaceId },
+    });
+    res.json({ success: true, message: 'Workspace deleted successfully' });
+  } catch (err) {
+    console.error('Failed to delete workspace:', err);
+    res.status(500).json({ error: 'Failed to delete workspace' });
+  }
+});
+
 // ----------------------------------------------------
 // Documents / Pages Endpoints
 // ----------------------------------------------------

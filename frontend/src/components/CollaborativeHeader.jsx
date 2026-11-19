@@ -4,6 +4,8 @@ import React, { useState } from 'react';
 import {
   FileText,
   Palette,
+  FileSpreadsheet,
+  Presentation,
   MessageSquare,
   History,
   Shield,
@@ -28,7 +30,7 @@ export default function CollaborativeHeader({
 }) {
   const [exportOpen, setExportOpen] = useState(false);
   return (
-    <header className="h-14 border-b border-slate-200 bg-white flex items-center justify-between px-2 sm:px-4 shrink-0 select-none z-10 gap-1.5 sm:gap-3">
+    <header className="relative z-30 h-14 border-b border-slate-200 bg-white flex items-center justify-between px-2 sm:px-4 shrink-0 select-none gap-1.5 sm:gap-3">
       {/* Left: Mobile Hamburger, Document Icon & Title */}
       <div className="flex items-center gap-1.5 sm:gap-2.5 min-w-0">
         <button
@@ -50,32 +52,62 @@ export default function CollaborativeHeader({
         />
       </div>
 
-      {/* Center: Notion Mode vs Figma Canvas Mode Toggle */}
-      <div className="flex items-center bg-slate-100 p-0.5 sm:p-1 rounded-xl border border-slate-200/80 shadow-xs shrink-0">
+      {/* Center: Notion Doc vs Figma Canvas vs Excel Spreadsheet vs PowerPoint Slides */}
+      <div className="flex items-center bg-slate-100 p-0.5 sm:p-1 rounded-xl border border-slate-200/80 shadow-xs shrink-0 gap-0.5">
         <button
           onClick={() => setActiveMode('document')}
-          className={`flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1 rounded-lg text-xs font-semibold transition-all ${
+          className={`flex items-center gap-1 sm:gap-1.5 px-2 sm:px-2.5 py-1 rounded-lg text-xs font-semibold transition-all ${
             activeMode === 'document'
               ? 'bg-white text-blue-600 shadow-sm'
               : 'text-slate-600 hover:text-slate-900'
           }`}
+          title="Notion-style Document"
         >
           <FileText size={14} className="shrink-0" />
-          <span className="hidden sm:inline">Document (Notion)</span>
-          <span className="sm:hidden">Doc</span>
+          <span className="hidden md:inline">Document (Notion)</span>
+          <span className="md:hidden">Doc</span>
         </button>
 
         <button
           onClick={() => setActiveMode('canvas')}
-          className={`flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1 rounded-lg text-xs font-semibold transition-all ${
+          className={`flex items-center gap-1 sm:gap-1.5 px-2 sm:px-2.5 py-1 rounded-lg text-xs font-semibold transition-all ${
             activeMode === 'canvas'
               ? 'bg-white text-purple-600 shadow-sm'
               : 'text-slate-600 hover:text-slate-900'
           }`}
+          title="Figma-style Infinite Canvas"
         >
           <Palette size={14} className="shrink-0" />
-          <span className="hidden sm:inline">Canvas (Figma)</span>
-          <span className="sm:hidden">Canvas</span>
+          <span className="hidden md:inline">Canvas (Figma)</span>
+          <span className="md:hidden">Canvas</span>
+        </button>
+
+        <button
+          onClick={() => setActiveMode('spreadsheet')}
+          className={`flex items-center gap-1 sm:gap-1.5 px-2 sm:px-2.5 py-1 rounded-lg text-xs font-semibold transition-all ${
+            activeMode === 'spreadsheet'
+              ? 'bg-white text-emerald-600 shadow-sm'
+              : 'text-slate-600 hover:text-slate-900'
+          }`}
+          title="Excel-style Spreadsheet"
+        >
+          <FileSpreadsheet size={14} className="shrink-0 text-emerald-600" />
+          <span className="hidden md:inline">Spreadsheet (Excel)</span>
+          <span className="md:hidden">Excel</span>
+        </button>
+
+        <button
+          onClick={() => setActiveMode('slides')}
+          className={`flex items-center gap-1 sm:gap-1.5 px-2 sm:px-2.5 py-1 rounded-lg text-xs font-semibold transition-all ${
+            activeMode === 'slides'
+              ? 'bg-white text-amber-600 shadow-sm'
+              : 'text-slate-600 hover:text-slate-900'
+          }`}
+          title="PowerPoint-style Presentation Slides"
+        >
+          <Presentation size={14} className="shrink-0 text-amber-500" />
+          <span className="hidden md:inline">Slides (PowerPoint)</span>
+          <span className="md:hidden">Slides</span>
         </button>
       </div>
 
@@ -166,7 +198,13 @@ export default function CollaborativeHeader({
           </button>
 
           {exportOpen && (
-            <div className="absolute right-0 mt-1.5 w-48 bg-white border border-slate-200 rounded-xl shadow-xl z-50 p-1.5 space-y-0.5 animate-in fade-in duration-100">
+            <>
+              {/* Transparent backdrop to close dropdown on click outside */}
+              <div
+                className="fixed inset-0 z-40"
+                onClick={() => setExportOpen(false)}
+              />
+              <div className="absolute right-0 mt-1.5 w-48 bg-white border border-slate-200 rounded-xl shadow-xl z-50 p-1.5 space-y-0.5 animate-in fade-in duration-100">
               <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider px-2 py-1">
                 Export As
               </div>
@@ -225,7 +263,30 @@ export default function CollaborativeHeader({
                 <span className="text-purple-600 font-bold text-[11px] w-7">MD</span>
                 <span>Markdown (.md)</span>
               </button>
+
+              <button
+                onClick={() => {
+                  if (onExport) onExport('csv');
+                  setExportOpen(false);
+                }}
+                className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs text-slate-700 hover:bg-emerald-50 hover:text-emerald-700 transition-colors text-left"
+              >
+                <span className="text-emerald-600 font-bold text-[11px] w-7">XLS</span>
+                <span>Excel Spreadsheet (.csv)</span>
+              </button>
+
+              <button
+                onClick={() => {
+                  if (onExport) onExport('presentation');
+                  setExportOpen(false);
+                }}
+                className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs text-slate-700 hover:bg-amber-50 hover:text-amber-700 transition-colors text-left"
+              >
+                <span className="text-amber-600 font-bold text-[11px] w-7">PPT</span>
+                <span>PowerPoint Deck (.pdf)</span>
+              </button>
             </div>
+            </>
           )}
         </div>
       </div>

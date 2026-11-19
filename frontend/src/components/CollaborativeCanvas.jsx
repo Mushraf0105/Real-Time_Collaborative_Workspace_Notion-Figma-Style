@@ -183,6 +183,7 @@ export default function CollaborativeCanvas({
       onMouseUp={handleMouseUp}
       onTouchMove={handleTouchMove}
       onTouchEnd={handleMouseUp}
+      onTouchCancel={handleMouseUp}
       className="flex-1 relative h-full w-full bg-slate-50 overflow-hidden select-none"
       style={{
         backgroundImage: 'radial-gradient(#cbd5e1 1px, transparent 1px)',

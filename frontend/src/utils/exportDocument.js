@@ -295,3 +295,89 @@ export function exportToMarkdown(title, textContent) {
   });
   triggerDownload(blob, `${sanitizeFilename(title)}.md`);
 }
+
+/**
+ * 6. Export Spreadsheet as CSV (.csv)
+ */
+export function exportSheetToCSV(title, cells = {}) {
+  const COLS = ['A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S','T','U','V','W','X','Y','Z'];
+  let csv = '';
+  for (let r = 1; r <= 50; r++) {
+    const rowVals = [];
+    let hasData = false;
+    for (let c = 0; c < 15; c++) {
+      const cid = `${COLS[c]}${r}`;
+      const raw = cells[cid]?.raw || '';
+      if (raw) hasData = true;
+      const clean = String(raw).replace(/"/g, '""');
+      rowVals.push(`"${clean}"`);
+    }
+    if (hasData || r <= 10) {
+      csv += rowVals.join(',') + '\n';
+    }
+  }
+
+  const blob = new Blob([csv], {
+    type: 'text/csv;charset=utf-8;',
+  });
+  triggerDownload(blob, `${sanitizeFilename(title)}_sheet.csv`);
+}
+
+/**
+ * 7. Export Slides Presentation as Printable Presentation Deck
+ */
+export function exportSlidesToPresentation(title, slides = []) {
+  const printWindow = window.open('', '_blank');
+  if (!printWindow) {
+    alert('Please allow popups to export Presentation');
+    return;
+  }
+
+  const slidesHtml = (slides || [])
+    .map(
+      (s, idx) => `
+    <div class="slide">
+      <div class="slide-header">
+        <span>${escapeXml(title)}</span>
+        <span>Slide ${idx + 1} of ${slides.length}</span>
+      </div>
+      <h1 class="slide-title">${escapeXml(s.title || 'Untitled')}</h1>
+      ${s.subtitle ? `<h3 class="slide-sub">${escapeXml(s.subtitle)}</h3>` : ''}
+      ${s.metric ? `<div class="slide-metric">${escapeXml(s.metric)}<div class="slide-metric-lbl">${escapeXml(s.metricLabel || '')}</div></div>` : ''}
+      ${
+        s.bullets && s.bullets.length > 0
+          ? `<ul class="slide-bullets">${s.bullets.map((b) => `<li>${escapeXml(b)}</li>`).join('')}</ul>`
+          : ''
+      }
+    </div>
+  `
+    )
+    .join('');
+
+  printWindow.document.open();
+  printWindow.document.write(`
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <title>${escapeXml(title)} — Presentation</title>
+      <style>
+        @page { size: landscape; margin: 15mm; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; margin: 0; background: #ffffff; color: #0f172a; }
+        .slide { page-break-after: always; padding: 40px; border: 1.5pt solid #cbd5e1; border-radius: 12px; margin-bottom: 24px; min-height: 480px; display: flex; flex-direction: column; justify-content: center; }
+        .slide-header { display: flex; justify-content: space-between; font-size: 10pt; color: #94a3b8; font-weight: bold; margin-bottom: 24px; text-transform: uppercase; }
+        .slide-title { font-size: 32pt; font-weight: 800; color: #1e3a8a; margin: 0 0 12px 0; }
+        .slide-sub { font-size: 16pt; font-weight: 500; color: #475569; margin: 0 0 24px 0; }
+        .slide-metric { font-size: 52pt; font-weight: 900; color: #d97706; margin: 20px 0; }
+        .slide-metric-lbl { font-size: 14pt; color: #64748b; font-weight: 600; margin-top: 6px; }
+        .slide-bullets { font-size: 16pt; line-height: 1.8; color: #334155; }
+      </style>
+    </head>
+    <body>
+      ${slidesHtml}
+      <script>window.onload = function() { setTimeout(function() { window.print(); }, 300); };</script>
+    </body>
+    </html>
+  `);
+  printWindow.document.close();
+}
