@@ -62,16 +62,57 @@ export default function WorkspacePage() {
   const [yDoc, setYDoc] = useState(null);
   const [provider, setProvider] = useState(null);
 
-  // 1. Initial Load: Users, Workspaces, Initial Doc
+  // Helper: Persist navigation location in URL query params & localStorage
+  const updateNavigationState = (wsId, docId, mode) => {
+    if (typeof window === 'undefined') return;
+    try {
+      if (wsId) localStorage.setItem('syncspace_active_workspace_id', wsId);
+      if (docId) {
+        localStorage.setItem('syncspace_active_document_id', docId);
+      } else {
+        localStorage.removeItem('syncspace_active_document_id');
+      }
+      if (mode) localStorage.setItem('syncspace_active_mode', mode);
+
+      // Keep URL search params in sync for seamless refresh & bookmarking
+      const url = new URL(window.location.href);
+      if (wsId) url.searchParams.set('ws', wsId);
+      if (docId) url.searchParams.set('doc', docId);
+      else url.searchParams.delete('doc');
+      if (mode) url.searchParams.set('mode', mode);
+      window.history.replaceState(null, '', url.pathname + url.search);
+    } catch (e) {}
+  };
+
+  const handleSwitchUser = (user) => {
+    setCurrentUser(user);
+    if (typeof window !== 'undefined' && user?.id) {
+      localStorage.setItem('syncspace_active_user_id', user.id);
+    }
+  };
+
+  const handleModeChange = (mode) => {
+    setActiveMode(mode);
+    updateNavigationState(currentWorkspace?.id, currentDocument?.id, mode);
+  };
+
+  // 1. Initial Load: Users, Workspaces, and Restore Active Document/Mode on Refresh
   useEffect(() => {
     async function initWorkspace() {
       try {
+        const urlParams = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null;
+        const savedWsId = urlParams?.get('ws') || (typeof window !== 'undefined' ? localStorage.getItem('syncspace_active_workspace_id') : null);
+        const savedDocId = urlParams?.get('doc') || (typeof window !== 'undefined' ? localStorage.getItem('syncspace_active_document_id') : null);
+        const savedMode = urlParams?.get('mode') || (typeof window !== 'undefined' ? localStorage.getItem('syncspace_active_mode') : null);
+        const savedUserId = typeof window !== 'undefined' ? localStorage.getItem('syncspace_active_user_id') : null;
+
         // Fetch users
         const usersRes = await fetch(`${API_BASE}/auth/users`);
         const usersData = await usersRes.json();
         setUsers(usersData);
         if (usersData.length > 0) {
-          setCurrentUser(usersData[0]); // Default Alice Cooper
+          const matchedUser = savedUserId ? usersData.find((u) => u.id === savedUserId) : null;
+          setCurrentUser(matchedUser || usersData[0]);
         }
 
         // Fetch workspaces
@@ -80,9 +121,13 @@ export default function WorkspacePage() {
         setWorkspaces(wsData);
 
         if (wsData.length > 0) {
-          const defaultWs = wsData[0];
-          setCurrentWorkspace(defaultWs);
-          loadDocuments(defaultWs.id);
+          let targetWs = wsData[0];
+          if (savedWsId) {
+            const foundWs = wsData.find((w) => w.id === savedWsId);
+            if (foundWs) targetWs = foundWs;
+          }
+          setCurrentWorkspace(targetWs);
+          await loadDocuments(targetWs.id, savedDocId, savedMode);
         }
       } catch (err) {
         console.error('Failed to load initial workspace data:', err);
@@ -91,17 +136,42 @@ export default function WorkspacePage() {
     initWorkspace();
   }, []);
 
-  // 2. Load Documents for a Workspace
-  const loadDocuments = async (workspaceId) => {
+  // 2. Load Documents for a Workspace & Retain Page / Modality
+  const loadDocuments = async (workspaceId, preferredDocId = null, preferredMode = null) => {
     try {
       const res = await fetch(`${API_BASE}/workspaces/${workspaceId}/documents`);
       const docs = await res.json();
       setDocuments(docs);
-      if (docs.length > 0) {
-        setCurrentDocument(docs[0]);
-      } else {
-        setCurrentDocument(null);
+
+      let targetDocId = preferredDocId;
+      if (!targetDocId && typeof window !== 'undefined') {
+        targetDocId = localStorage.getItem('syncspace_active_document_id');
       }
+
+      let selectedDoc = null;
+      if (targetDocId && docs.length > 0) {
+        selectedDoc = docs.find((d) => d.id === targetDocId) || docs[0];
+      } else if (docs.length > 0) {
+        selectedDoc = docs[0];
+      }
+
+      setCurrentDocument(selectedDoc);
+
+      // Determine active modality (Spreadsheet, Slides, Canvas, or Doc)
+      let targetMode = preferredMode;
+      if (!targetMode && typeof window !== 'undefined') {
+        targetMode = localStorage.getItem('syncspace_active_mode');
+      }
+
+      if (!targetMode || !['document', 'canvas', 'spreadsheet', 'slides'].includes(targetMode)) {
+        if (selectedDoc?.icon === '📊') targetMode = 'spreadsheet';
+        else if (selectedDoc?.icon === '📽️') targetMode = 'slides';
+        else if (selectedDoc?.icon === '🎨') targetMode = 'canvas';
+        else targetMode = 'document';
+      }
+
+      setActiveMode(targetMode);
+      updateNavigationState(workspaceId, selectedDoc?.id, targetMode);
     } catch (err) {
       console.error('Failed to load documents:', err);
     }
@@ -208,6 +278,7 @@ export default function WorkspacePage() {
   const handleSelectWorkspace = (ws) => {
     setCurrentWorkspace(ws);
     loadDocuments(ws.id);
+    updateNavigationState(ws.id, null, activeMode);
   };
 
   const handleCreateWorkspace = async ({ name, icon, description }) => {
@@ -229,6 +300,7 @@ export default function WorkspacePage() {
       // Start the new workspace completely clean with 0 documents (no demo data)
       setDocuments([]);
       setCurrentDocument(null);
+      updateNavigationState(newWs.id, null, 'document');
       return newWs;
     } catch (err) {
       console.error('Failed to create workspace:', err);
@@ -256,9 +328,11 @@ export default function WorkspacePage() {
         setCurrentWorkspace(nextWs);
         if (nextWs) {
           loadDocuments(nextWs.id);
+          updateNavigationState(nextWs.id, null, 'document');
         } else {
           setDocuments([]);
           setCurrentDocument(null);
+          updateNavigationState(null, null, 'document');
         }
       }
     } catch (err) {
@@ -268,13 +342,16 @@ export default function WorkspacePage() {
 
   const handleSelectDocument = (doc) => {
     setCurrentDocument(doc);
+    let nextMode = 'document';
     if (doc?.icon === '📊') {
-      setActiveMode('spreadsheet');
+      nextMode = 'spreadsheet';
     } else if (doc?.icon === '📽️') {
-      setActiveMode('slides');
+      nextMode = 'slides';
     } else if (doc?.icon === '🎨') {
-      setActiveMode('canvas');
+      nextMode = 'canvas';
     }
+    setActiveMode(nextMode);
+    updateNavigationState(currentWorkspace?.id, doc?.id, nextMode);
   };
 
   const handleCreateDocument = async (parentId = null, template = null) => {
@@ -296,9 +373,9 @@ export default function WorkspacePage() {
       const newDoc = await res.json();
       setDocuments((prev) => [...prev, newDoc]);
       setCurrentDocument(newDoc);
-      if (template?.mode) {
-        setActiveMode(template.mode);
-      }
+      const nextMode = template?.mode || (newDoc.icon === '📊' ? 'spreadsheet' : newDoc.icon === '📽️' ? 'slides' : newDoc.icon === '🎨' ? 'canvas' : 'document');
+      setActiveMode(nextMode);
+      updateNavigationState(currentWorkspace.id, newDoc.id, nextMode);
     } catch (err) {
       console.error('Failed to create document:', err);
     }
@@ -307,10 +384,17 @@ export default function WorkspacePage() {
   const handleDeleteDocument = async (docId) => {
     try {
       await fetch(`${API_BASE}/documents/${docId}`, { method: 'DELETE' });
-      setDocuments((prev) => prev.filter((d) => d.id !== docId));
+      const remaining = documents.filter((d) => d.id !== docId);
+      setDocuments(remaining);
       if (currentDocument?.id === docId) {
-        const remaining = documents.filter((d) => d.id !== docId);
-        setCurrentDocument(remaining.length > 0 ? remaining[0] : null);
+        const nextDoc = remaining.length > 0 ? remaining[0] : null;
+        setCurrentDocument(nextDoc);
+        let nextMode = 'document';
+        if (nextDoc?.icon === '📊') nextMode = 'spreadsheet';
+        else if (nextDoc?.icon === '📽️') nextMode = 'slides';
+        else if (nextDoc?.icon === '🎨') nextMode = 'canvas';
+        setActiveMode(nextMode);
+        updateNavigationState(currentWorkspace?.id, nextDoc?.id, nextMode);
       }
     } catch (err) {
       console.error('Failed to delete document:', err);
@@ -391,21 +475,36 @@ export default function WorkspacePage() {
 
   const handleUpdatePermission = async (userId, role) => {
     if (!currentDocument) return;
+    if (currentUser?.role !== 'ADMIN') {
+      alert('Permission denied. Only Administrators can grant or change document permissions.');
+      return;
+    }
     try {
       const res = await fetch(`${API_BASE}/documents/${currentDocument.id}/permissions`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId, role }),
+        body: JSON.stringify({ userId, role, requesterId: currentUser?.id }),
       });
+      if (!res.ok) {
+        const errData = await res.json();
+        alert(errData.error || 'Failed to update permission');
+        return;
+      }
       const perm = await res.json();
       setPermissions((prev) => {
         const filtered = prev.filter((p) => p.userId !== userId);
         return [...filtered, perm];
       });
-    } catch (err) {}
+    } catch (err) {
+      console.error('Failed to update permission:', err);
+    }
   };
 
   const handleAddMember = async ({ name, email, role, color }) => {
+    if (currentUser?.role !== 'ADMIN') {
+      alert('Permission denied. Only Administrators can add new members.');
+      return;
+    }
     try {
       const res = await fetch(`${API_BASE}/auth/users`, {
         method: 'POST',
@@ -416,8 +515,14 @@ export default function WorkspacePage() {
           role,
           color,
           workspaceId: currentWorkspace?.id,
+          requesterId: currentUser?.id,
         }),
       });
+      if (!res.ok) {
+        const errData = await res.json();
+        alert(errData.error || 'Failed to add member');
+        return;
+      }
       const newUser = await res.json();
       setUsers((prev) => [...prev.filter((u) => u.id !== newUser.id), newUser]);
       if (currentDocument) {
@@ -426,6 +531,31 @@ export default function WorkspacePage() {
       return newUser;
     } catch (err) {
       console.error('Failed to create member:', err);
+    }
+  };
+
+  const handleRemoveMember = async (userId) => {
+    if (currentUser?.role !== 'ADMIN') {
+      alert('Permission denied. Only Administrators can remove members.');
+      return;
+    }
+    if (userId === currentUser?.id) {
+      alert('You cannot remove yourself from the workspace.');
+      return;
+    }
+    try {
+      const res = await fetch(`${API_BASE}/auth/users/${userId}?requesterId=${currentUser?.id}`, {
+        method: 'DELETE',
+      });
+      if (!res.ok) {
+        const errData = await res.json();
+        alert(errData.error || 'Failed to remove member');
+        return;
+      }
+      setUsers((prev) => prev.filter((u) => u.id !== userId));
+      setPermissions((prev) => prev.filter((p) => p.userId !== userId));
+    } catch (err) {
+      console.error('Failed to remove member:', err);
     }
   };
 
@@ -498,7 +628,7 @@ export default function WorkspacePage() {
         onDeleteDocument={handleDeleteDocument}
         users={users}
         currentUser={currentUser}
-        onSwitchUser={setCurrentUser}
+        onSwitchUser={handleSwitchUser}
         wsConnected={wsConnected}
         onOpenAddMember={() => setPermissionsOpen(true)}
       />
@@ -511,7 +641,7 @@ export default function WorkspacePage() {
             <CollaborativeHeader
               document={currentDocument}
               activeMode={activeMode}
-              setActiveMode={setActiveMode}
+              setActiveMode={handleModeChange}
               activeCollaborators={activeCollaborators}
               onOpenComments={() => setCommentsOpen(!commentsOpen)}
               commentsCount={comments.filter((c) => !c.isResolved).length}
@@ -661,8 +791,10 @@ export default function WorkspacePage() {
         onClose={() => setPermissionsOpen(false)}
         users={users}
         permissions={permissions}
+        currentUser={currentUser}
         onUpdatePermission={handleUpdatePermission}
         onAddMember={handleAddMember}
+        onRemoveMember={handleRemoveMember}
       />
     </div>
   );

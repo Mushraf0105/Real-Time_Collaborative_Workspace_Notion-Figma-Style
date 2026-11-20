@@ -12,7 +12,8 @@ import {
   FileText,
   FileSpreadsheet,
   Presentation,
-  Palette
+  Palette,
+  Shield
 } from 'lucide-react';
 
 export default function Sidebar({
@@ -400,18 +401,33 @@ export default function Sidebar({
                 </button>
               ))}
 
-              <div className="pt-1 mt-1 border-t border-slate-100">
-                <button
-                  onClick={() => {
-                    setUserMenuOpen(false);
-                    if (onOpenAddMember) onOpenAddMember();
-                  }}
-                  className="w-full flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-lg text-xs font-semibold text-blue-600 hover:bg-blue-50 transition-colors"
-                >
-                  <Plus size={13} />
-                  <span>+ Add New Member</span>
-                </button>
-              </div>
+              {currentUser?.role === 'ADMIN' ? (
+                <div className="pt-1 mt-1 border-t border-slate-100">
+                  <button
+                    onClick={() => {
+                      setUserMenuOpen(false);
+                      if (onOpenAddMember) onOpenAddMember();
+                    }}
+                    className="w-full flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-lg text-xs font-semibold text-blue-600 hover:bg-blue-50 transition-colors"
+                  >
+                    <Plus size={13} />
+                    <span>+ Add New Member</span>
+                  </button>
+                </div>
+              ) : (
+                <div className="pt-1 mt-1 border-t border-slate-100">
+                  <button
+                    onClick={() => {
+                      setUserMenuOpen(false);
+                      if (onOpenAddMember) onOpenAddMember();
+                    }}
+                    className="w-full flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-lg text-xs font-medium text-slate-500 hover:bg-slate-100 transition-colors"
+                  >
+                    <Shield size={12} className="text-slate-400" />
+                    <span>View Workspace Members</span>
+                  </button>
+                </div>
+              )}
             </div>
             </>
           )}

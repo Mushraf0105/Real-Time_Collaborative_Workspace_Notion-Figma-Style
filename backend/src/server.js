@@ -7,7 +7,7 @@ import dotenv from 'dotenv';
 import prisma from './db/prisma.js';
 import { customPersistence } from './crdt/persistence.js';
 import { redisBus } from './redis/redisBus.js';
-import { saveUserToCredentialsFiles } from './utils/credentialsSync.js';
+import { saveUserToCredentialsFiles, removeUserFromCredentialsFiles, syncCredentialsToDatabase } from './utils/credentialsSync.js';
 
 dotenv.config();
 
@@ -39,10 +39,26 @@ app.get('/api/health', (req, res) => {
 });
 
 // ----------------------------------------------------
+// RBAC Helper: Verify if user is an Administrator
+// ----------------------------------------------------
+async function isUserAdmin(userId) {
+  if (!userId) return false;
+  try {
+    const user = await prisma.user.findUnique({ where: { id: userId } });
+    return user?.role === 'ADMIN';
+  } catch (e) {
+    return false;
+  }
+}
+
+// ----------------------------------------------------
 // Auth & Demo Personas Endpoints
 // ----------------------------------------------------
 app.get('/api/auth/users', async (req, res) => {
   try {
+    // Automatically synchronize any changes made directly in credentials/*.json files into the database
+    await syncCredentialsToDatabase(prisma);
+
     const users = await prisma.user.findMany({
       select: { id: true, name: true, email: true, avatar: true, color: true, role: true },
     });
@@ -54,9 +70,17 @@ app.get('/api/auth/users', async (req, res) => {
 
 app.post('/api/auth/users', async (req, res) => {
   try {
-    const { name, email, role, color, workspaceId } = req.body;
+    const { name, email, role, color, workspaceId, requesterId } = req.body;
     if (!name || !email) {
       return res.status(400).json({ error: 'Name and email are required' });
+    }
+
+    // RBAC: Only Admin can add members if requesterId is provided
+    if (requesterId) {
+      const isAdmin = await isUserAdmin(requesterId);
+      if (!isAdmin) {
+        return res.status(403).json({ error: 'Permission denied. Only Administrators can add new members.' });
+      }
     }
 
     const palette = ['#3b82f6', '#10b981', '#f59e0b', '#ec4899', '#8b5cf6', '#06b6d4', '#f97316', '#14b8a6'];
@@ -101,6 +125,65 @@ app.post('/api/auth/users', async (req, res) => {
   } catch (err) {
     console.error('Failed to create user:', err);
     res.status(500).json({ error: 'Failed to create member' });
+  }
+});
+
+app.delete('/api/auth/users/:userId', async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const requesterId = req.query.requesterId || req.body?.requesterId;
+
+    // RBAC: Only Admin can remove members
+    if (requesterId) {
+      const isAdmin = await isUserAdmin(requesterId);
+      if (!isAdmin) {
+        return res.status(403).json({ error: 'Permission denied. Only Administrators can remove members.' });
+      }
+    }
+
+    const targetUser = await prisma.user.findUnique({ where: { id: userId } });
+    if (!targetUser) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    // Prevent removing the last administrator
+    if (targetUser.role === 'ADMIN') {
+      const adminCount = await prisma.user.count({ where: { role: 'ADMIN' } });
+      if (adminCount <= 1) {
+        return res.status(400).json({ error: 'Cannot remove the only remaining administrator.' });
+      }
+    }
+
+    // 1. Remove workspace memberships
+    await prisma.workspaceMember.deleteMany({ where: { userId } });
+    // 2. Remove document permissions
+    await prisma.documentPermission.deleteMany({ where: { userId } });
+
+    // 3. Reassign created documents/snapshots to first remaining admin to prevent foreign key errors
+    const fallbackAdmin = await prisma.user.findFirst({
+      where: { role: 'ADMIN', id: { not: userId } },
+    });
+    if (fallbackAdmin) {
+      await prisma.document.updateMany({
+        where: { createdBy: userId },
+        data: { createdBy: fallbackAdmin.id },
+      });
+      await prisma.documentSnapshot.updateMany({
+        where: { createdBy: userId },
+        data: { createdBy: fallbackAdmin.id },
+      });
+    }
+
+    // 4. Delete user record
+    await prisma.user.delete({ where: { id: userId } });
+
+    // 5. Remove from credentials files
+    removeUserFromCredentialsFiles(userId, targetUser.email);
+
+    res.json({ success: true, message: `Member ${targetUser.name} removed successfully` });
+  } catch (err) {
+    console.error('Failed to remove member:', err);
+    res.status(500).json({ error: 'Failed to remove member' });
   }
 });
 
@@ -480,7 +563,16 @@ app.get('/api/documents/:id/permissions', async (req, res) => {
 app.post('/api/documents/:id/permissions', async (req, res) => {
   try {
     const { id } = req.params;
-    const { userId, role } = req.body;
+    const { userId, role, requesterId } = req.body;
+
+    // RBAC: Only Admin can give / change permissions
+    if (requesterId) {
+      const isAdmin = await isUserAdmin(requesterId);
+      if (!isAdmin) {
+        return res.status(403).json({ error: 'Permission denied. Only Administrators can modify document permissions.' });
+      }
+    }
+
     const permission = await prisma.documentPermission.upsert({
       where: {
         documentId_userId: { documentId: id, userId },
@@ -513,8 +605,13 @@ server.on('upgrade', (request, socket, head) => {
   });
 });
 
-server.listen(PORT, () => {
+server.listen(PORT, async () => {
   console.log(`🚀 [SyncSpace API] Server running on http://localhost:${PORT}`);
   console.log(`📡 [SyncSpace WS] Real-Time CRDT WebSocket server running on ws://localhost:${WS_PORT}`);
   console.log(`⚡ [SyncSpace Clustering] Redis PubSub bus initialized (${redisBus.isRedisConnected ? 'Redis Connected' : 'In-Memory Fallback'})`);
+  try {
+    await syncCredentialsToDatabase(prisma);
+  } catch (err) {
+    console.error('Failed initial credentials sync:', err);
+  }
 });

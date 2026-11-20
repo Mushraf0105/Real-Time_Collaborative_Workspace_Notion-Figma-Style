@@ -3,6 +3,7 @@
 [![Tech Stack](https://img.shields.io/badge/Stack-Next.js%2014%20%7C%20Yjs%20CRDT%20%7C%20WebSockets%20%7C%20PostgreSQL%20%7C%20Redis%20%7C%20Prisma-blue.svg)](#-required-tech-stack)
 [![CRDT Engine](https://img.shields.io/badge/CRDT-Yjs%20%28Commutative%29-purple.svg)](https://github.com/yjs/yjs)
 [![Suite](https://img.shields.io/badge/Suite-Notion%20%7C%20Figma%20%7C%20Excel%20%7C%20PowerPoint-blueviolet.svg)](#-four-collaborative-workplace-modalities)
+[![RBAC](https://img.shields.io/badge/Security-Admin%20RBAC%20Enforced-red.svg)](#-strict-administrator-rbac--permissions)
 [![Mobile Ready](https://img.shields.io/badge/Mobile-Responsive%20%26%20Touch%20Ready-success.svg)](#-mobile-responsiveness--touch-support)
 [![Export Formats](https://img.shields.io/badge/Export-PDF%20%7C%20DOC%20%7C%20XML%20%7C%20HTML%20%7C%20MD%20%7C%20CSV%20%7C%20PPT-orange.svg)](#-multi-format-document-export)
 [![Tests Passing](https://img.shields.io/badge/Tests-100%25%20Passing%20%289%2F9%29-brightgreen.svg)](#-concurrency--benchmark-results)
@@ -23,13 +24,14 @@ An enterprise-grade, distributed real-time collaborative workspace combining **N
 | **5. Slide Deck Modality (PowerPoint)** | Real-time synced presentation slides (`yDoc.getMap('slides_data')`), 5 themes, 5 slide layouts, speaker notes, fullscreen Presenter Mode (`F5`), and printable export. | `frontend/src/components/CollaborativeSlides.jsx` |
 | **6. WebSocket Server (y-websocket)** | Standalone WebSocket server on port `1234` plus Express API on port `5001` with binary sync message handling. | `backend/src/server.js`, `backend/src/crdt/persistence.js` |
 | **7. Presence: Colored Cursors & Avatars** | Real-time presence via `y-protocols/awareness`: colored carets, name tags, live selections, peer grid highlights, and canvas mouse/touch tracking. | `frontend/src/components/CollaborativeHeader.jsx`, `frontend/src/components/CollaborativeCanvas.jsx` |
-| **8. Comments, Snapshots & Permissions** | Threaded comments on text selections, immutable version history snapshots with 1-click restore, and granular RBAC (`EDIT`, `COMMENT`, `VIEW`). | `backend/src/server.js`, `frontend/src/components/CommentsDrawer.jsx`, `frontend/src/components/VersionHistoryModal.jsx`, `frontend/src/components/PermissionsModal.jsx` |
+| **8. Strict Administrator RBAC** | Only Administrators can assign `Edit`, `Comment`, or `View` permissions, invite new members, or remove members with safe document ownership reassignment. | `backend/src/server.js`, `frontend/src/components/PermissionsModal.jsx`, `frontend/src/components/Sidebar.jsx` |
 | **9. Redis Multi-Instance Scaling** | Redis Pub/Sub cluster bus (`collab:doc:{id}`) with origin attribution for horizontal WebSocket scaling across instances. | `backend/src/redis/redisBus.js`, `backend/src/crdt/persistence.js` |
 | **10. 4-Way Workplace Modalities** | Instant seamless toggle between Notion Document, Figma Canvas, Excel Spreadsheet, and PowerPoint Slides. | `frontend/src/app/page.jsx`, `frontend/src/components/CollaborativeHeader.jsx` |
 | **11. Multi-Format Document Export** | 1-Click client-side export to **PDF**, Word (**DOC**), **XML**, **HTML**, Markdown (**MD**), Excel Spreadsheet (**CSV**), and PowerPoint (**PPT/PDF**). | `frontend/src/utils/exportDocument.js`, `frontend/src/components/CollaborativeHeader.jsx` |
-| **12. Live Credentials Sync** | Dynamic auto-generation and real-time disk persistence of newly created members into category-segmented JSON credentials. | `backend/src/utils/credentialsSync.js`, `credentials/`, `CREDENTIALS.md` |
-| **13. Mobile Responsiveness & Touch** | Slide-out navigation drawer, backdrop dismiss, adaptive compact header, single-row ribbon toolbar, and touch drag gestures for canvas notes. | `frontend/src/components/Sidebar.jsx`, `frontend/src/components/CollaborativeHeader.jsx`, `frontend/src/components/CollaborativeCanvas.jsx` |
-| **14. Gutenberg & Wikipedia Stress Testing** | 50 concurrent virtual peers benchmarked under heavy typing load with Project Gutenberg & Wikipedia corpora (1,700+ ops/sec). | `backend/tests/stress.test.js`, `TEST_REPORT.md` |
+| **12. Bidirectional Credentials Sync** | Automatic two-way synchronization between disk (`credentials/*.json`) and the database (`prisma.user`) on startup and request. | `backend/src/utils/credentialsSync.js`, `credentials/`, `CREDENTIALS.md` |
+| **13. Page & Modality State Retention** | Seamless rehydration of active workspace, active document, active modality, and user persona across page refreshes (`F5`). | `frontend/src/app/page.jsx` |
+| **14. Mobile Responsiveness & Touch** | Slide-out navigation drawer, backdrop dismiss, adaptive compact header, single-row ribbon toolbar, and touch drag gestures for canvas notes. | `frontend/src/components/Sidebar.jsx`, `frontend/src/components/CollaborativeHeader.jsx`, `frontend/src/components/CollaborativeCanvas.jsx` |
+| **15. Gutenberg & Wikipedia Stress Testing** | 50 concurrent virtual peers benchmarked under heavy typing load with Project Gutenberg & Wikipedia corpora (1,700+ ops/sec). | `backend/tests/stress.test.js`, `TEST_REPORT.md` |
 
 ---
 
@@ -71,6 +73,46 @@ Users can switch between four distinct real-time productivity modalities in any 
   - Integrated Speaker Notes panel for meeting prep.
   - **Fullscreen Presenter Mode (`F5`)**: Distraction-free presentation view with keyboard navigation (Arrow keys, Spacebar, Escape).
 - **Export:** 1-Click 16:9 printable presentation export.
+
+---
+
+## 🛡️ Strict Administrator RBAC & Permissions
+
+SyncSpace enforces rigorous Role-Based Access Control (RBAC) at both the frontend interface and backend API levels:
+
+1. **Permission Assignment (`Can Edit`, `Can Comment`, `Can View`):**
+   - **Administrators Only:** Only users with `role: 'ADMIN'` can assign or change document permissions.
+   - Non-admins see read-only locked status badges (`🔒 Can Edit`, etc.) with informative tooltips.
+   - Backend endpoint `POST /api/documents/:id/permissions` strictly verifies `requesterId` has `ADMIN` role.
+2. **Member Invitation:**
+   - The `+ Add New Member` modal button and registration form are restricted to Administrators.
+   - Sidebar displays *View Workspace Members* in read-only mode for non-admin users.
+3. **Member Removal with Safety Guarantees:**
+   - Admins can remove members directly from the Permissions Modal.
+   - **Data Integrity & Foreign-Key Safety:** When a member is removed, all documents, sticky notes, and snapshots they created are automatically reassigned to the active Administrator so no workspace data is orphaned.
+   - Safeguard protects against removing the last administrator or self-removal.
+   - Removed members are instantly purged from the SQLite database and disk credentials (`users.json`, `Member.json`, `Viewer.json`).
+
+---
+
+## 🔄 Bidirectional Credentials Synchronization
+
+SyncSpace provides automatic two-way synchronization between disk credential files and the runtime database:
+
+- **Disk-to-Database Sync:** When any file in [`credentials/`](credentials/) ([`Admin.json`](credentials/Admin.json), [`Member.json`](credentials/Member.json), [`Viewer.json`](credentials/Viewer.json), [`users.json`](credentials/users.json)) is manually edited on disk, the backend automatically detects changes on server boot and on every `/api/auth/users` request, updating `prisma.user` in real time.
+- **Database-to-Disk Sync:** Creating or deleting members through the web application immediately writes down to disk files.
+- **Reconciled Master Index:** `credentials/users.json` stays continuously consolidated with role-specific JSON files.
+
+---
+
+## ⚡ Page State & Modality Retention on Refresh
+
+When pressing Refresh (`F5`) or reopening the workspace:
+- **Active Workspace Retained:** The app remains in your currently active workspace instead of jumping to the first workspace.
+- **Active Document Retained:** Keeps you on the exact document, spreadsheet, presentation, or whiteboard you were editing.
+- **Active Modality Retained:** Preserves your view mode (**Spreadsheet**, **Presentation Slides**, **Document Editor**, or **Whiteboard Canvas**).
+- **Active User Persona Retained:** Remembers your chosen collaborator persona across reloads.
+- **Dual-Layer Persistence:** Driven by browser `localStorage` and URL parameters (`?ws=...&doc=...&mode=...`) allowing seamless bookmarking and sharing.
 
 ---
 
@@ -169,14 +211,13 @@ Collaborators can export their live documents at any time from the **Export** me
 
 ## 👥 Demo Personas & Credentials System
 
-The system comes pre-seeded with rich collaborative personas. Use the **Active Collaborator Switcher** at the bottom-left of the sidebar to instantly switch personas:
+The system provides active collaborative personas. Use the **Active Collaborator Switcher** at the bottom-left of the sidebar to instantly switch personas:
 
 | Persona | Name & Role | Color Badge | Default Permissions | Key Capabilities |
 |---|---|---|---|---|
-| 🔵 **Alice Cooper** | Lead Architect (`ADMIN`) | `#3b82f6` (Sapphire) | `OWNER` / `EDIT` | Full document editing, snapshot rollback, canvas note creation |
-| 🟢 **Bob Smith** | Frontend Engineer (`MEMBER`) | `#10b981` (Emerald) | `EDIT` | Collaborative typing, table edits, threaded comment creation |
-| 🟡 **Charlie Lee** | Product Designer (`MEMBER`) | `#f59e0b` (Amber) | `EDIT` / `COMMENT` | Figma canvas design, sticky note organization, review notes |
-| 🌸 **Diana Prince** | Executive Reviewer (`VIEWER`) | `#ec4899` (Rose) | `VIEW` (Read-Only) | Observes real-time changes with editor disabled |
+| 🔵 **Md Mushraf Ali** | Lead Architect (`ADMIN`) | `#3b82f6` (Sapphire) | `OWNER` / `EDIT` | Full document editing, snapshot rollback, member add/remove, permissions management |
+| 🟢 **Bob Smith** | Frontend Engineer (`MEMBER`) | `#10b981` (Emerald) | `EDIT` | Collaborative typing, spreadsheet calculations, slide design, comments |
+| 🟣 **Test Collaborator** | Quality Engineer (`MEMBER`) | `#8b5cf6` (Violet) | `EDIT` | Multi-user concurrency testing, canvas sticky notes |
 
 ### Live User Creation & Credentials Persistence
 
@@ -242,7 +283,7 @@ FS-02/
 │   │   ├── redis/
 │   │   │   └── redisBus.js     # Redis Pub/Sub multi-instance scaling with memory fallback
 │   │   ├── utils/
-│   │   │   └── credentialsSync.js # Real-time disk sync for user credential files
+│   │   │   └── credentialsSync.js # Two-way disk-to-database credentials synchronization
 │   │   └── server.js           # Express API + y-websocket real-time CRDT server
 │   ├── tests/
 │   │   ├── convergence.test.js # CRDT commutativity & state vector diff tests
@@ -254,7 +295,7 @@ FS-02/
 │   │   ├── app/
 │   │   │   ├── globals.css     # Tailwind styling + TipTap & collaborative cursor styles
 │   │   │   ├── layout.jsx      # Root HTML layout, viewport settings & fonts
-│   │   │   └── page.jsx        # Main collaborative workspace container & drawer state
+│   │   │   └── page.jsx        # Main collaborative workspace container & state retention
 │   │   ├── components/
 │   │   │   ├── CollaborativeCanvas.jsx      # Figma-style 2D sticky canvas with touch support
 │   │   │   ├── CollaborativeHeader.jsx      # 4-Way mode switcher, presence avatars, export
@@ -292,12 +333,14 @@ FS-02/
 ## 📄 Deliverables Verification Checklist
 
 - [x] **Working demo:** 4-Way Modalities: Notion block editor, Figma whiteboard canvas, Excel spreadsheet, PowerPoint slides.
+- [x] **Strict Administrator RBAC:** Admin-only permission assignment, member invitation, and member deletion with document reassignment.
+- [x] **Bidirectional Credentials Sync:** Automatic two-way synchronization between `credentials/*.json` on disk and the database.
+- [x] **Page & Modality Retention:** Full state restoration on browser refresh (`F5`) via `URLSearchParams` and `localStorage`.
 - [x] **Mobile & Touch Support:** Responsive drawer navigation, adaptive compact header, touch-enabled canvas notes.
 - [x] **Spreadsheet Formula Engine:** Real-time `=SUM`, `=AVG`, `=COUNT`, arithmetic, and peer cell selection awareness.
 - [x] **PowerPoint Presentation Mode:** 5 themes, 5 slide layouts, speaker notes, fullscreen Presenter Mode (`F5`).
 - [x] **Workspace Lifecycle:** Multi-workspace switcher, clean zero-demo-data creation, safe cascade deletion.
 - [x] **Multi-Format Document Exporter:** 1-Click export to PDF, Word DOC, XML, HTML, Markdown, CSV, and Presentation.
-- [x] **Live Credentials Persistence:** Automated synchronization of new users into `credentials/*.json`.
 - [x] **GitHub repository ready:** Clean commits, `.gitignore`, modular architecture, and full setup instructions.
 - [x] **Architecture diagram & API docs:** [ARCHITECTURE.md](ARCHITECTURE.md) and [API_DOCUMENTATION.md](API_DOCUMENTATION.md).
 - [x] **Credentials & User Guide:** [CREDENTIALS.md](CREDENTIALS.md).
