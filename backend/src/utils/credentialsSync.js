@@ -269,28 +269,83 @@ export async function syncCredentialsToDatabase(prisma) {
           });
           const ownerId = ws.ownerId || primaryAdmin.id;
           const slug = ws.slug || ws.name.toLowerCase().replace(/[^a-z0-9]+/g, '-') + '-' + (ws.id || 'demo');
+          
+          let targetWs = existingWs;
           if (!existingWs) {
-            const createdWs = await prisma.workspace.create({
+            targetWs = await prisma.workspace.create({
               data: {
                 id: ws.id,
                 name: ws.name,
                 slug: slug,
-                icon: ws.icon || '🚀',
+                icon: ws.icon || '🏢',
                 description: ws.description || '',
                 ownerId: ownerId,
               },
             });
-            // Create a default welcome document in this workspace
-            await prisma.document.create({
+          } else {
+            targetWs = await prisma.workspace.update({
+              where: { id: existingWs.id },
               data: {
-                id: `doc_welcome_${createdWs.id}`,
-                workspaceId: createdWs.id,
-                title: 'Welcome to ' + createdWs.name,
-                icon: createdWs.icon || '🚀',
-                content: `<h1>🚀 Welcome to ${createdWs.name}</h1><p>SyncSpace is an enterprise-grade real-time collaborative workspace suite featuring Notion-style documents, Figma-style canvases, Excel spreadsheets, and PowerPoint presentations.</p>`,
-                createdBy: ownerId,
+                name: ws.name,
+                icon: ws.icon || existingWs.icon,
+                description: ws.description || existingWs.description,
               },
             });
+          }
+
+          // Ensure all 4 document modalities exist and match the workspace name
+          const existingDocs = await prisma.document.findMany({
+            where: { workspaceId: targetWs.id },
+          });
+
+          const docDefs = [
+            {
+              id: `${targetWs.id}_doc_handbook`,
+              title: `${ws.name} Product & Engineering Handbook`,
+              icon: '📝',
+              content: `<h1>🚀 ${ws.name} — Product & Engineering Handbook</h1><p>Welcome to <strong>${ws.name}</strong>! This workspace brings together our cross-functional team across documents, whiteboards, spreadsheets, and pitch presentations.</p><h2>✨ Core Engineering Pillars</h2><ul><li><strong>Distributed Real-Time Collaboration:</strong> Sub-millisecond synchronization powered by Yjs CRDTs.</li><li><strong>Strong Eventual Consistency:</strong> Commutative state vector merging across all active peers.</li><li><strong>Granular Governance:</strong> Strict Administrator-only role and permission management.</li></ul>`,
+            },
+            {
+              id: `${targetWs.id}_figma_canvas`,
+              title: `${ws.name} System Architecture & Whiteboard`,
+              icon: '🎨',
+              content: `<h1>${ws.name} Interactive Canvas</h1><p>Use the Canvas tab above to collaborate on sticky notes, brainstorm architecture, and drag diagram elements in real-time.</p>`,
+              canvasData: JSON.stringify([
+                { id: 'note-1', type: 'sticky', x: 100, y: 80, text: `${ws.name}: Next.js 14 + WebSockets Core`, color: '#fef08a' },
+                { id: 'note-2', type: 'sticky', x: 380, y: 80, text: 'CRDT Commutative Synchronization: Strong eventual consistency', color: '#bbf7d0' },
+                { id: 'note-3', type: 'sticky', x: 660, y: 80, text: 'Administrator RBAC: Strict access control matrix', color: '#fed7aa' },
+                { id: 'note-4', type: 'sticky', x: 240, y: 280, text: 'Multi-Modal Suite: Notion Docs, Figma Canvas, Excel & Slides', color: '#fbcfe8' },
+              ]),
+            },
+            {
+              id: `${targetWs.id}_excel_sheet`,
+              title: `${ws.name} Financial Model & Budget`,
+              icon: '📊',
+              content: `<h1>${ws.name} Financial Model & Budget</h1><p>Real-time collaborative spreadsheet with reactive formula computation (=SUM, =AVG, =COUNT, arithmetic) and peer cell highlight awareness.</p>`,
+            },
+            {
+              id: `${targetWs.id}_ppt_slides`,
+              title: `${ws.name} Company Pitch Deck`,
+              icon: '📽️',
+              content: `<h1>${ws.name} Company Pitch Deck</h1><p>PowerPoint-style collaborative presentation slide deck with fullscreen Presenter Mode (F5), themes, and slide navigation.</p>`,
+            },
+          ];
+
+          for (const def of docDefs) {
+            const docExists = existingDocs.find((d) => d.id === def.id || d.title === def.title);
+            if (!docExists) {
+              await prisma.document.create({
+                data: {
+                  id: def.id,
+                  workspaceId: targetWs.id,
+                  title: def.title,
+                  icon: def.icon,
+                  content: def.content,
+                  canvasData: def.canvasData || null,
+                  createdBy: ownerId,
+                },
+              });
+            }
           }
         }
       } catch (e) {

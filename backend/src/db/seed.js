@@ -76,11 +76,11 @@ async function main() {
   // 3. Create Workspaces
   const acmeLab = await prisma.workspace.create({
     data: {
-      id: 'ws_acme_lab',
-      name: 'Acme Innovation Lab',
-      slug: 'acme-lab',
-      description: 'Cross-functional engineering and design collaborative hub.',
-      icon: '🚀',
+      id: 'ws_nexvia_tech',
+      name: 'Nexvia Technologies',
+      slug: 'nexvia-technologies',
+      description: 'Enterprise collaborative workspace for engineering, design, spreadsheets, and presentations.',
+      icon: '🏢',
       ownerId: alice.id,
       members: {
         create: [
@@ -138,8 +138,8 @@ async function main() {
     data: {
       id: 'doc_welcome_01',
       workspaceId: acmeLab.id,
-      title: 'Welcome to SyncSpace',
-      icon: '🚀',
+      title: 'Nexvia Technologies Product & Engineering Handbook',
+      icon: '📝',
       content: initialContentDoc1,
       yjsState: binaryDoc1,
       createdBy: alice.id,
@@ -156,11 +156,11 @@ async function main() {
       id: 'doc_rfc_crdt_02',
       workspaceId: acmeLab.id,
       parentId: doc1.id,
-      title: 'RFC-104: CRDT Synchronization & Redis Cluster Protocol',
+      title: 'Nexvia Technologies Architecture & Protocol Spec',
       icon: '📜',
       content: `
-        <h1>RFC-104: CRDT Synchronization & Redis Cluster Protocol</h1>
-        <p><strong>Status:</strong> Approved | <strong>Author:</strong> Alice Cooper | <strong>Target:</strong> v1.2</p>
+        <h1>Nexvia Technologies Architecture & Protocol Spec</h1>
+        <p><strong>Status:</strong> Approved | <strong>Author:</strong> Lead Architect | <strong>Target:</strong> Production</p>
         <hr />
         <h3>1. Motivation</h3>
         <p>Traditional Operational Transformation (OT) requires a central server to linearize all operations. Under high concurrent write loads or flaky WebSocket connections, OT suffers from desynchronization and lock contention. SyncSpace utilizes Yjs CRDTs (state-based and operation-based hybrid) to achieve determinism.</p>
@@ -180,15 +180,15 @@ async function main() {
     data: {
       id: 'doc_canvas_board_03',
       workspaceId: acmeLab.id,
-      title: 'Product Roadmap & Interactive Canvas',
+      title: 'Nexvia Technologies System Architecture & Whiteboard',
       icon: '🎨',
-      content: '<h1>Product Roadmap Canvas</h1><p>Use the Canvas tab above to collaborate on sticky notes, brainstorm sprints, and drag architecture blocks in real-time.</p>',
+      content: '<h1>Nexvia Technologies Interactive Canvas</h1><p>Use the Canvas tab above to collaborate on sticky notes, brainstorm sprints, and drag architecture blocks in real-time.</p>',
       createdBy: charlie.id,
       canvasData: JSON.stringify([
-        { id: 'stick-1', type: 'sticky', x: 120, y: 80, text: 'Feature: Document Revision Timeline & Rollback', color: '#fef08a' },
-        { id: 'stick-2', type: 'sticky', x: 380, y: 80, text: 'Feature: Live Cursor Presence with custom colored avatars', color: '#fed7aa' },
-        { id: 'stick-3', type: 'sticky', x: 640, y: 80, text: 'Feature: Granular Permission Gates (View, Comment, Edit)', color: '#bae6fd' },
-        { id: 'stick-4', type: 'sticky', x: 120, y: 280, text: 'Benchmarking: 50 Concurrent Peers Gutenberg typing test', color: '#fbcfe8' },
+        { id: 'stick-1', type: 'sticky', x: 120, y: 80, text: 'Nexvia Technologies: Next.js 14 + WebSockets', color: '#fef08a' },
+        { id: 'stick-2', type: 'sticky', x: 380, y: 80, text: 'CRDT Commutative Synchronization: Strong eventual consistency', color: '#fed7aa' },
+        { id: 'stick-3', type: 'sticky', x: 640, y: 80, text: 'Administrator RBAC: Strict access control matrix', color: '#bae6fd' },
+        { id: 'stick-4', type: 'sticky', x: 120, y: 280, text: 'Multi-Modal Suite: Notion Docs, Figma Canvas, Excel & Slides', color: '#fbcfe8' },
       ]),
     },
   });
@@ -197,9 +197,9 @@ async function main() {
     data: {
       id: 'doc_excel_model_04',
       workspaceId: acmeLab.id,
-      title: 'Q4 Financial Model & Budget',
+      title: 'Nexvia Technologies Financial Model & Budget',
       icon: '📊',
-      content: '<h1>Q4 Financial Model & Budget</h1><p>Interactive Excel-style collaborative spreadsheet with real-time formula computation (=SUM, =AVG, =COUNT, =MAX, =MIN).</p>',
+      content: '<h1>Nexvia Technologies Financial Model & Budget</h1><p>Interactive Excel-style collaborative spreadsheet with real-time formula computation (=SUM, =AVG, =COUNT, =MAX, =MIN).</p>',
       createdBy: alice.id,
     },
   });
@@ -208,9 +208,9 @@ async function main() {
     data: {
       id: 'doc_slides_deck_05',
       workspaceId: acmeLab.id,
-      title: 'SyncSpace Pitch Deck & Strategy',
+      title: 'Nexvia Technologies Company Pitch Deck',
       icon: '📽️',
-      content: '<h1>SyncSpace Pitch Deck & Strategy</h1><p>PowerPoint-style collaborative presentation slide deck with presenter mode, themes, and layouts.</p>',
+      content: '<h1>Nexvia Technologies Company Pitch Deck</h1><p>PowerPoint-style collaborative presentation slide deck with presenter mode, themes, and layouts.</p>',
       createdBy: alice.id,
     },
   });
