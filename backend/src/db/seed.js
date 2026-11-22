@@ -1,6 +1,6 @@
 import { PrismaClient } from '@prisma/client';
 import * as Y from 'yjs';
-import { saveUserToCredentialsFiles } from '../utils/credentialsSync.js';
+import { saveUserToCredentialsFiles, syncCredentialsToDatabase } from '../utils/credentialsSync.js';
 
 const prisma = new PrismaClient();
 
@@ -291,6 +291,12 @@ async function main() {
   });
 
   console.log('✅ Seeded permissions, comments, and version snapshots');
+  try {
+    await syncCredentialsToDatabase(prisma);
+    console.log('✅ Synchronized active credentials to database');
+  } catch (err) {
+    console.error('Credentials sync error in seed:', err);
+  }
   console.log('✨ SyncSpace seeding complete! Ready for evaluation.');
 }
 

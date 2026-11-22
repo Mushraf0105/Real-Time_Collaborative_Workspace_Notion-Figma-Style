@@ -7,6 +7,7 @@
   "scripts": {
     "start": "node src/server.js",
     "dev": "node --watch src/server.js",
+    "seed": "node src/db/seedFromCredentials.js",
     "test": "node tests/convergence.test.js",
     "test:stress": "node tests/stress.test.js"
   },
