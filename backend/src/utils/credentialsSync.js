@@ -4,8 +4,21 @@ import { fileURLToPath } from 'url';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-// Root credentials directory: E:\FS-02\credentials
-const CREDENTIALS_DIR = path.resolve(__dirname, '../../../credentials');
+// Root credentials directory: resolves reliably in local, Docker, Render, and Vercel environments
+function getCredentialsDir() {
+  if (process.env.CREDENTIALS_DIR) {
+    return path.resolve(process.env.CREDENTIALS_DIR);
+  }
+  const candidates = [
+    path.resolve(__dirname, '../../../credentials'),
+    path.resolve(__dirname, '../../credentials'),
+    path.resolve(process.cwd(), 'credentials'),
+    path.resolve(process.cwd(), '../credentials'),
+  ];
+  const found = candidates.find((c) => fs.existsSync(c));
+  return found || candidates[0];
+}
+const CREDENTIALS_DIR = getCredentialsDir();
 
 /**
  * Automatically saves or updates user details in credentials/ JSON files

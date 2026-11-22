@@ -49,9 +49,12 @@ services:
       PORT: 5001
       WS_PORT: 1234
       NODE_ENV: production
+      CREDENTIALS_DIR: "/credentials"
     ports:
       - "5001:5001"
       - "1234:1234"
+    volumes:
+      - ./credentials:/credentials
     depends_on:
       postgres:
         condition: service_healthy
