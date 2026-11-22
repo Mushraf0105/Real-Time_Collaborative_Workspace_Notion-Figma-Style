@@ -28,8 +28,8 @@ import {
   exportSlidesToPresentation,
 } from '../utils/exportDocument';
 
-const API_BASE = 'http://localhost:5001/api';
-const WS_URL = 'ws://localhost:1234';
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001/api';
+const WS_URL = process.env.NEXT_PUBLIC_WS_URL || 'ws://localhost:1234';
 
 export default function WorkspacePage() {
   // State: Core data
