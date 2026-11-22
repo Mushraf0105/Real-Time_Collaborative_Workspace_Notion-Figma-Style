@@ -1,5 +1,7 @@
 # SyncSpace — Real-Time Collaborative Workspace Suite (Notion + Figma + Excel + PowerPoint)
 
+[![Live Web App](https://img.shields.io/badge/Live%20App-Vercel%20Deployed-success.svg?logo=vercel)](https://real-time-collaborative-workspace-n-five.vercel.app/)
+[![Live Backend](https://img.shields.io/badge/Live%20Backend-Render%20Web%20Service-blue.svg?logo=render)](https://syncspace-backend-v89m.onrender.com)
 [![Tech Stack](https://img.shields.io/badge/Stack-Next.js%2014%20%7C%20Yjs%20CRDT%20%7C%20WebSockets%20%7C%20PostgreSQL%20%7C%20Redis%20%7C%20Prisma-blue.svg)](#-required-tech-stack)
 [![CRDT Engine](https://img.shields.io/badge/CRDT-Yjs%20%28Commutative%29-purple.svg)](https://github.com/yjs/yjs)
 [![Suite](https://img.shields.io/badge/Suite-Notion%20%7C%20Figma%20%7C%20Excel%20%7C%20PowerPoint-blueviolet.svg)](#-four-collaborative-workplace-modalities)
@@ -7,9 +9,16 @@
 [![Mobile Ready](https://img.shields.io/badge/Mobile-Responsive%20%26%20Touch%20Ready-success.svg)](#-mobile-responsiveness--touch-support)
 [![Export Formats](https://img.shields.io/badge/Export-PDF%20%7C%20DOC%20%7C%20XML%20%7C%20HTML%20%7C%20MD%20%7C%20CSV%20%7C%20PPT-orange.svg)](#-multi-format-document-export)
 [![Tests Passing](https://img.shields.io/badge/Tests-100%25%20Passing%20%289%2F9%29-brightgreen.svg)](#-concurrency--benchmark-results)
-[![License: ISC](https://img.shields.io/badge/License-ISC-green.svg)](LICENSE)
 
 An enterprise-grade, distributed real-time collaborative workspace combining **Notion-style rich-text block editing**, **Figma-style infinite whiteboard diagramming**, **Excel-style collaborative spreadsheets**, and **PowerPoint-style presentation slides**. Multiple collaborators edit simultaneously across all four modalities, observe each other's live colored cursors and peer cell selections, drag sticky notes across devices, run spreadsheet formulas, present slide decks in fullscreen, export to 7 industry formats, and experience conflict-free synchronization powered by Yjs CRDTs.
+
+---
+
+### 🌐 Live Production Deployments
+
+* **Frontend Web Application (Vercel):** [https://real-time-collaborative-workspace-n-five.vercel.app/](https://real-time-collaborative-workspace-n-five.vercel.app/)
+* **Backend API & WebSocket Gateway (Render):** [https://syncspace-backend-v89m.onrender.com](https://syncspace-backend-v89m.onrender.com)
+* **Default Deployed Workspace:** **Nexvia Technologies** (`ws_nexvia_tech`)
 
 ---
 
@@ -171,12 +180,18 @@ This starts:
 
 ---
 
-## 🏢 Workspace Lifecycle Management
+## 🏢 Workspace Lifecycle & Admin Governance
 
-SyncSpace provides complete workspace organization:
-- **Zero Demo Data in New Workspaces:** Creating a new workspace initializes a clean canvas without dummy records, presenting quick-start templates (Blank Document, Blank Spreadsheet, Blank Presentation, Blank Whiteboard) so users enter their own data directly.
-- **Workspace Switcher:** Seamlessly switch between team workspaces with real-time document count badges.
-- **Workspace Deletion:** Delete workspaces from the sidebar with safe cascade cleanup in Prisma and protection against deleting the final remaining workspace.
+SyncSpace provides enterprise workspace organization:
+- **Admin-Only Workspace Creation & Deletion:** Strict Role-Based Access Control ensures that only users with the `ADMIN` role can create new workspaces (`+ Create New Workspace`) or delete workspaces. Non-admin members see disabled indicators with clear tooltips.
+- **Quick Delete Workspace Controls:** Administrators can delete the active workspace via the quick-action trash icon (**🗑️**) in the sidebar header or directly beside each workspace in the switcher dropdown.
+- **Default Deployed Workspace ("Nexvia Technologies"):** Comes pre-seeded with 4 matching collaborative modalities:
+  1. 📝 *Nexvia Technologies Product & Engineering Handbook* (Notion-style Document)
+  2. 🎨 *Nexvia Technologies System Architecture & Whiteboard* (Figma-style Canvas with sticky notes)
+  3. 📊 *Nexvia Technologies Financial Model & Budget* (Excel-style Spreadsheet with reactive formulas)
+  4. 📽️ *Nexvia Technologies Company Pitch Deck* (PowerPoint-style Presentation Slides with Presenter Mode)
+- **Automatic Two-Way File Sync:** Workspace metadata (name, description, admin name, icon) is automatically persisted in [`credentials/Workspace.json`](credentials/Workspace.json).
+- **Zero Demo Data in New Workspaces:** Creating a new workspace initializes a clean canvas without dummy records, presenting quick-start templates (Blank Document, Blank Spreadsheet, Blank Presentation, Blank Whiteboard).
 - **Hierarchical Document Tree:** Create nested sub-documents under any parent page with expandable tree views.
 
 ---
@@ -213,17 +228,19 @@ Collaborators can export their live documents at any time from the **Export** me
 
 The system provides active collaborative personas. Use the **Active Collaborator Switcher** at the bottom-left of the sidebar to instantly switch personas:
 
-| Persona | Name & Role | Color Badge | Default Permissions | Key Capabilities |
-|---|---|---|---|---|
-| 🔵 **Md Mushraf Ali** | Lead Architect (`ADMIN`) | `#3b82f6` (Sapphire) | `OWNER` / `EDIT` | Full document editing, snapshot rollback, member add/remove, permissions management |
-| 🟢 **Bob Smith** | Frontend Engineer (`MEMBER`) | `#10b981` (Emerald) | `EDIT` | Collaborative typing, spreadsheet calculations, slide design, comments |
-| 🟣 **Test Collaborator** | Quality Engineer (`MEMBER`) | `#8b5cf6` (Violet) | `EDIT` | Multi-user concurrency testing, canvas sticky notes |
+| Persona | Name & Role | Email / Password | Color Badge | Default Permissions | Key Capabilities |
+|---|---|---|---|---|---|
+| 🔵 **Md Mushraf Ali** | Lead Architect (`ADMIN`) | `mushraf@gmail.com` / `mushraf8520` | `#3b82f6` (Sapphire) | `OWNER` / `EDIT` | Full document editing, spreadsheet formulas, slide decks, canvas notes, snapshot rollback, create/delete workspaces, member add/remove |
+| 🟢 **Shahid / Bob Smith** | Full-Stack Engineer (`MEMBER`) | `bob@syncspace.io` / `Password@123` | `#10b981` (Emerald) | `EDIT` | Real-time block editing, spreadsheet calculation, slide design, threaded comments |
+| 🟣 **Md Ali** | Quality Engineer (`MEMBER`) | `ali@gmail.com` / `Password@123` | `#10b981` (Emerald) | `EDIT` | Collaborative document editing, spreadsheet calculations, presentation design |
+| 🔵 **Saif Khan** | Collaborative Member (`MEMBER`) | `saif@gmail.com` / `Password@123` | `#3b82f6` (Sapphire) | `EDIT` | Multi-user concurrency testing, canvas sticky notes, presentation design |
 
 ### Live User Creation & Credentials Persistence
 
 When a new member is added via the **Permissions Modal** or the persona dropdown:
 - The user is saved to the SQLite/PostgreSQL database.
 - The credentials and profile are automatically synchronized to disk in the [`credentials/`](credentials/) directory:
+  - [`credentials/Workspace.json`](credentials/Workspace.json) — Master index of workspaces, descriptions, and admin owners.
   - [`credentials/users.json`](credentials/users.json) — Master index of all registered workspace users.
   - [`credentials/Admin.json`](credentials/Admin.json) — Platform Admin credentials.
   - [`credentials/Member.json`](credentials/Member.json) — Standard collaborative members.

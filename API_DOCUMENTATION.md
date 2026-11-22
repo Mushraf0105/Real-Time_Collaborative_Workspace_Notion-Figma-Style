@@ -93,7 +93,7 @@ Registers a new team member and automatically saves their profile to `credential
   "email": "sarah@syncspace.io",
   "role": "EDIT",
   "color": "#ec4899",
-  "workspaceId": "ws_acme_lab",
+  "workspaceId": "ws_nexvia_tech",
   "requesterId": "usr_mushraf_01"
 }
 ```
@@ -143,7 +143,7 @@ Creates a new document, spreadsheet, slide deck, or whiteboard canvas page.
 **Request Body:**
 ```json
 {
-  "workspaceId": "ws_acme_lab",
+  "workspaceId": "ws_nexvia_tech",
   "parentId": null,
   "title": "Q4 Financial Model",
   "icon": "📊",

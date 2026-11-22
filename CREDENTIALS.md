@@ -8,10 +8,18 @@ All evaluation accounts in **SyncSpace** are pre-configured with granular permis
 
 | Persona | Name | Email | Password | Role | Cursor Color | Permissions & Access Scope |
 |---|---|---|---|---|---|---|
-| 🔵 **Admin / Lead Architect** | **Md Mushraf Ali** | `mushraf@gmail.com` | `mushraf8520` | `ADMIN` | `#3b82f6` (Sapphire) | **Full Administrative Authority:** Document block editing, spreadsheet formulas, presentation decks, canvas sticky notes, snapshot rollback, assign user permissions (`Edit`/`Comment`/`View`), invite new members, and remove members. |
-| 🟢 **Full-Stack Engineer** | **Bob Smith** | `bob@syncspace.io` | `Password@123` | `MEMBER` | `#10b981` (Emerald) | **Collaborative Member:** Real-time block editing, spreadsheet calculation, slide design, threaded comments. |
-| 🟣 **Quality Engineer** | **Test Collaborator** | `test@syncspace.io` | `Password@123` | `MEMBER` | `#8b5cf6` (Violet) | **Collaborative Member:** Concurrency testing, sticky notes whiteboard, presentation design. |
+| 🔵 **Admin / Lead Architect** | **Md Mushraf Ali** | `mushraf@gmail.com` | `mushraf8520` | `ADMIN` | `#3b82f6` (Sapphire) | **Full Administrative Authority:** Document block editing, spreadsheet formulas, presentation decks, canvas sticky notes, snapshot rollback, create/delete workspaces, assign permissions (`Edit`/`Comment`/`View`), invite members, and remove members. |
+| 🟢 **Full-Stack Engineer** | **Shahid / Bob Smith** | `bob@syncspace.io` | `Password@123` | `MEMBER` | `#10b981` (Emerald) | **Collaborative Member:** Real-time block editing, spreadsheet calculation, slide design, threaded comments. |
+| 🟣 **Quality Engineer** | **Md Ali** | `ali@gmail.com` | `Password@123` | `MEMBER` | `#10b981` (Emerald) | **Collaborative Member:** Multi-user concurrency testing, sticky notes whiteboard, presentation design. |
 | 🔵 **Collaborative Member** | **Saif Khan** | `saif@gmail.com` | `Password@123` | `MEMBER` | `#3b82f6` (Sapphire) | **Collaborative Member:** Real-time document editing, spreadsheet formulas, slide deck creation, threaded comments. |
+
+---
+
+## 🏢 Active Workspaces
+
+| Workspace ID | Name | Icon | Description | Administrator |
+|---|---|:---:|---|---|
+| `ws_nexvia_tech` | **Nexvia Technologies** | 🏢 | Enterprise collaborative workspace for engineering, design, spreadsheets, and presentations. | **Md Mushraf Ali** (`mushraf@gmail.com`) |
 
 ---
 
