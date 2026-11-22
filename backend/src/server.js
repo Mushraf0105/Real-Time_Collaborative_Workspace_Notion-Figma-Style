@@ -7,7 +7,13 @@ import dotenv from 'dotenv';
 import prisma from './db/prisma.js';
 import { customPersistence } from './crdt/persistence.js';
 import { redisBus } from './redis/redisBus.js';
-import { saveUserToCredentialsFiles, removeUserFromCredentialsFiles, syncCredentialsToDatabase } from './utils/credentialsSync.js';
+import {
+  saveUserToCredentialsFiles,
+  removeUserFromCredentialsFiles,
+  syncCredentialsToDatabase,
+  saveWorkspaceToCredentialsFiles,
+  removeWorkspaceFromCredentialsFiles,
+} from './utils/credentialsSync.js';
 
 dotenv.config();
 
@@ -268,6 +274,14 @@ app.post('/api/workspaces', async (req, res) => {
         members: { include: { user: true } },
       },
     });
+
+    // Automatically sync workspace to credentials/Workspace.json
+    saveWorkspaceToCredentialsFiles(
+      workspace,
+      adminUser?.name || 'Md Mushraf Ali',
+      adminUser?.email || 'mushraf@gmail.com'
+    );
+
     res.status(201).json(workspace);
   } catch (err) {
     res.status(500).json({ error: 'Failed to create workspace' });
@@ -305,6 +319,10 @@ app.delete('/api/workspaces/:workspaceId', async (req, res) => {
     await prisma.workspace.delete({
       where: { id: workspaceId },
     });
+
+    // Automatically remove workspace from credentials/Workspace.json
+    removeWorkspaceFromCredentialsFiles(workspaceId);
+
     res.json({ success: true, message: 'Workspace deleted successfully' });
   } catch (err) {
     console.error('Failed to delete workspace:', err);

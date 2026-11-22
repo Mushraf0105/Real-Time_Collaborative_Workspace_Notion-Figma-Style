@@ -23,6 +23,7 @@ The credential files are persisted and synchronized in the `credentials/` folder
 - [`credentials/Admin.json`](credentials/Admin.json) — Platform Administrator credentials.
 - [`credentials/Member.json`](credentials/Member.json) — Collaborative members.
 - [`credentials/Viewer.json`](credentials/Viewer.json) — Read-only reviewer accounts.
+- [`credentials/Workspace.json`](credentials/Workspace.json) — Workspaces list containing workspace name, description, and admin name.
 
 ---
 

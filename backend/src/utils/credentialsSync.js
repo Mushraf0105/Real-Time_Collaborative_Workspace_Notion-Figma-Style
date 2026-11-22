@@ -21,6 +21,59 @@ function getCredentialsDir() {
 const CREDENTIALS_DIR = getCredentialsDir();
 
 /**
+ * Automatically saves or updates workspace details in credentials/Workspace.json
+ */
+export function saveWorkspaceToCredentialsFiles(workspace, adminName = 'Md Mushraf Ali', adminEmail = 'mushraf@gmail.com') {
+  try {
+    if (!fs.existsSync(CREDENTIALS_DIR)) {
+      fs.mkdirSync(CREDENTIALS_DIR, { recursive: true });
+    }
+    const wsFile = path.join(CREDENTIALS_DIR, 'Workspace.json');
+    let workspaces = [];
+    if (fs.existsSync(wsFile)) {
+      try {
+        workspaces = JSON.parse(fs.readFileSync(wsFile, 'utf-8'));
+      } catch (e) {
+        workspaces = [];
+      }
+    }
+    const entry = {
+      id: workspace.id,
+      name: workspace.name,
+      icon: workspace.icon || '📁',
+      description: workspace.description || '',
+      adminName,
+      adminEmail,
+      createdAt: workspace.createdAt ? new Date(workspace.createdAt).toISOString() : new Date().toISOString(),
+    };
+    const idx = workspaces.findIndex((w) => w.id === workspace.id);
+    if (idx >= 0) {
+      workspaces[idx] = { ...workspaces[idx], ...entry };
+    } else {
+      workspaces.push(entry);
+    }
+    fs.writeFileSync(wsFile, JSON.stringify(workspaces, null, 2), 'utf-8');
+  } catch (err) {
+    console.error('Failed to save workspace to credentials:', err);
+  }
+}
+
+/**
+ * Removes a workspace from credentials/Workspace.json
+ */
+export function removeWorkspaceFromCredentialsFiles(workspaceId) {
+  try {
+    const wsFile = path.join(CREDENTIALS_DIR, 'Workspace.json');
+    if (!fs.existsSync(wsFile)) return;
+    const workspaces = JSON.parse(fs.readFileSync(wsFile, 'utf-8'));
+    const filtered = workspaces.filter((w) => w.id !== workspaceId);
+    fs.writeFileSync(wsFile, JSON.stringify(filtered, null, 2), 'utf-8');
+  } catch (err) {
+    console.error('Failed to remove workspace from credentials:', err);
+  }
+}
+
+/**
  * Automatically saves or updates user details in credentials/ JSON files
  * @param {Object} user User object from Prisma or request
  * @param {string} workspaceName Name of current workspace
@@ -203,9 +256,50 @@ export async function syncCredentialsToDatabase(prisma) {
     const activeList = Array.from(activeMap.values());
     if (activeList.length === 0) return;
 
+    const primaryAdmin = activeList.find((u) => u.role === 'ADMIN') || activeList[0];
+
+    // 1.5. Sync workspaces from credentials/Workspace.json
+    const wsFile = path.join(CREDENTIALS_DIR, 'Workspace.json');
+    if (fs.existsSync(wsFile)) {
+      try {
+        const fileWorkspaces = JSON.parse(fs.readFileSync(wsFile, 'utf-8'));
+        for (const ws of fileWorkspaces) {
+          const existingWs = await prisma.workspace.findFirst({
+            where: { OR: [{ id: ws.id }, { name: ws.name }] },
+          });
+          const ownerId = ws.ownerId || primaryAdmin.id;
+          const slug = ws.slug || ws.name.toLowerCase().replace(/[^a-z0-9]+/g, '-') + '-' + (ws.id || 'demo');
+          if (!existingWs) {
+            const createdWs = await prisma.workspace.create({
+              data: {
+                id: ws.id,
+                name: ws.name,
+                slug: slug,
+                icon: ws.icon || '🚀',
+                description: ws.description || '',
+                ownerId: ownerId,
+              },
+            });
+            // Create a default welcome document in this workspace
+            await prisma.document.create({
+              data: {
+                id: `doc_welcome_${createdWs.id}`,
+                workspaceId: createdWs.id,
+                title: 'Welcome to ' + createdWs.name,
+                icon: createdWs.icon || '🚀',
+                content: `<h1>🚀 Welcome to ${createdWs.name}</h1><p>SyncSpace is an enterprise-grade real-time collaborative workspace suite featuring Notion-style documents, Figma-style canvases, Excel spreadsheets, and PowerPoint presentations.</p>`,
+                createdBy: ownerId,
+              },
+            });
+          }
+        }
+      } catch (e) {
+        console.error('Error syncing Workspace.json:', e);
+      }
+    }
+
     // 2. Sync active users into Prisma DB
     const allWorkspaces = await prisma.workspace.findMany();
-    const primaryAdmin = activeList.find((u) => u.role === 'ADMIN') || activeList[0];
 
     for (const u of activeList) {
       const existing = await prisma.user.findFirst({
