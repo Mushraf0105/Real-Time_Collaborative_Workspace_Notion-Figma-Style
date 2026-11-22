@@ -4,45 +4,55 @@ All evaluation accounts in **SyncSpace** are pre-configured with granular permis
 
 ---
 
-## 🔑 User Credentials Table
+## 🔑 Active User Credentials Table
 
 | Persona | Name | Email | Password | Role | Cursor Color | Permissions & Access Scope |
 |---|---|---|---|---|---|---|
-| 🔵 **Admin / Lead** | **Alice Cooper** | `alice@syncspace.io` | `Password@123` | `ADMIN` | `#3b82f6` (Sapphire) | **Full Access:** Edit documents, canvas sticky notes, snapshot rollback, user permissions. |
-| 🟢 **Full-Stack Engineer** | **Bob Smith** | `bob@syncspace.io` | `Password@123` | `MEMBER` | `#10b981` (Emerald) | **Full Edit:** Collaborative block editing, code blocks, tables, comments. |
-| 🟡 **Product Designer** | **Charlie Lee** | `charlie@syncspace.io` | `Password@123` | `MEMBER` | `#f59e0b` (Amber) | **Edit & Design:** Figma-style canvas, sticky notes, threaded review comments. |
-| 🌸 **Executive Reviewer** | **Diana Prince** | `diana@syncspace.io` | `Password@123` | `VIEWER` | `#ec4899` (Rose) | **Read-Only:** Observes live document edits and cursors with editor disabled. |
+| 🔵 **Admin / Lead Architect** | **Md Mushraf Ali** | `mushraf@gmail.com` | `mushraf8520` | `ADMIN` | `#3b82f6` (Sapphire) | **Full Administrative Authority:** Document block editing, spreadsheet formulas, presentation decks, canvas sticky notes, snapshot rollback, assign user permissions (`Edit`/`Comment`/`View`), invite new members, and remove members. |
+| 🟢 **Full-Stack Engineer** | **Bob Smith** | `bob@syncspace.io` | `Password@123` | `MEMBER` | `#10b981` (Emerald) | **Collaborative Member:** Real-time block editing, spreadsheet calculation, slide design, threaded comments. |
+| 🟣 **Quality Engineer** | **Test Collaborator** | `test@syncspace.io` | `Password@123` | `MEMBER` | `#8b5cf6` (Violet) | **Collaborative Member:** Concurrency testing, sticky notes whiteboard, presentation design. |
+| 🔵 **Collaborative Member** | **Saif Khan** | `saif@gmail.com` | `Password@123` | `MEMBER` | `#3b82f6` (Sapphire) | **Collaborative Member:** Real-time document editing, spreadsheet formulas, slide deck creation, threaded comments. |
 
 ---
 
 ## 📁 JSON Credentials Files Location
 
-The credential files are saved in the `credentials/` folder:
+The credential files are persisted and synchronized in the `credentials/` folder:
 
-- [`credentials/users.json`](credentials/users.json) — Master list of all registered users and metadata.
-- [`credentials/Admin.json`](credentials/Admin.json) — Platform Admin credentials.
-- [`credentials/Member.json`](credentials/Member.json) — Standard collaborative members.
+- [`credentials/users.json`](credentials/users.json) — Consolidated master list of all registered workspace users.
+- [`credentials/Admin.json`](credentials/Admin.json) — Platform Administrator credentials.
+- [`credentials/Member.json`](credentials/Member.json) — Collaborative members.
 - [`credentials/Viewer.json`](credentials/Viewer.json) — Read-only reviewer accounts.
+
+---
+
+## 🔄 Automatic Two-Way Credentials Sync
+
+SyncSpace features **bidirectional synchronization** between disk credential files and the database:
+- **Disk to Database:** If an administrator updates or removes accounts directly in `credentials/Admin.json`, `Member.json`, `Viewer.json`, or `users.json` on disk, the backend server automatically syncs those changes to the database on boot and on every `/api/auth/users` request (such as refreshing the browser).
+- **Database to Disk:** Adding or removing members through the web UI instantly saves and cleans up the JSON files on disk.
 
 ---
 
 ## 💡 How to Use These Credentials
 
 1. **In the Web Browser (1-Click Switcher):**
-   - Click the **Active Collaborator** card at the bottom-left of the sidebar to instantly switch between Alice, Bob, Charlie, and Diana.
-   - You can also click **`+ Add New Member`** in the switcher to register a new user live with custom name, email, and cursor color.
+   - Click the **Active Collaborator** card at the bottom-left of the sidebar to instantly switch between Md Mushraf Ali, Bob Smith, and Test Collaborator.
+   - If signed in as an **Admin**, you can click **`+ Add New Member`** in the switcher or Permissions Modal to register new team members.
+   - If signed in as a **Member**, the switcher displays **`View Workspace Members`** in read-only mode.
 
 2. **Via REST API Login:**
    - Endpoint: `POST http://localhost:5001/api/auth/login`
    - Body:
      ```json
      {
-       "email": "alice@syncspace.io",
-       "password": "Password@123"
+       "email": "mushraf@gmail.com",
+       "password": "mushraf8520"
      }
      ```
 
-3. **In Multi-Tab / Multi-Browser Testing:**
-   - Open Tab 1: Keep **Alice Cooper** (Blue cursor).
+3. **Multi-Tab / Multi-Browser Testing:**
+   - Open Tab 1: Keep **Md Mushraf Ali** (Blue cursor).
    - Open Tab 2: Switch to **Bob Smith** (Green cursor).
-   - Type or move your mouse to see live concurrent cursors and conflict-free editing.
+   - Open Tab 3: Switch to **Test Collaborator** (Violet cursor).
+   - Type or move your mouse to see live concurrent cursors, peer spreadsheet cell highlights, and conflict-free editing across tabs.

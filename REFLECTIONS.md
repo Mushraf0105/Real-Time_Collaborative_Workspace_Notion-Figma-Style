@@ -35,18 +35,25 @@
 
 ---
 
-## 👨‍💻 Reflection 3: Collaborative UX, TipTap Editor & Enterprise Governance
-**Domain Owned:** Next.js 14 Web Application, TipTap Block Editor Integration, Figma-Style Infinite Canvas, Live Cursor Presence, Comments & Version History
+## 👨‍💻 Reflection 3: Collaborative UX, 4-Way Workplace Modalities & Enterprise Governance
+**Domain Owned:** Next.js 14 Full-Stack Web App, 4 Workplace Modalities (Notion Document, Figma Canvas, Excel Spreadsheet, PowerPoint Slides), Reactive Formula Engine, Presenter Mode, Strict Admin RBAC, Bidirectional Credentials Sync & Dual-Layer State Persistence
 
 ### Technical Ownership:
-- Built the full-stack Next.js application using Tailwind CSS and Lucide icons, featuring a dual-mode workspace interface (Notion Document Mode + Figma Canvas Mode).
-- Integrated the TipTap WYSIWYG block editor with the `@tiptap/extension-collaboration` and `@tiptap/extension-collaboration-cursor` plugins, delivering live colored carets, name tags, and selections.
-- Developed the Figma-inspired infinite whiteboard canvas with draggable, resizable sticky notes synchronized across peers using Yjs `Y.Map` and real-time mouse coordinate awareness.
-- Built the nested document hierarchy sidebar supporting parent-child subpages, collapsible folders, and 1-click evaluation persona switching (Alice, Bob, Charlie, Diana).
-- Implemented the Granular Access Control matrix (`EDIT`, `COMMENT`, `VIEW`), interactive comment drawer with text quote anchors, and the 1-click Version History snapshot rollback engine.
+- Built the full-stack Next.js application using Tailwind CSS and Lucide icons, featuring a 4-in-1 workspace interface: **Notion-Style Document**, **Figma-Style Canvas**, **Excel-Style Spreadsheet**, and **PowerPoint-Style Presentation Slides**.
+- Integrated the TipTap WYSIWYG block editor with `@tiptap/extension-collaboration` and `@tiptap/extension-collaboration-cursor`, delivering live colored carets, name tags, selections, task lists, and code blocks.
+- Developed the Figma-inspired infinite whiteboard canvas with draggable sticky notes synchronized across peers using Yjs `Y.Map` and real-time mouse/touch awareness.
+- Engineered the collaborative spreadsheet module with reactive formula parsing (`=SUM`, `=AVG`, `=COUNT`, arithmetic), cell formatting, live peer cell selection awareness, and 1-click CSV export.
+- Implemented the real-time presentation slides system with 5 designer themes, 5 slide layouts, speaker notes, 16:9 printable export, and a fullscreen Presenter Mode (`F5`) with keyboard navigation.
+- Implemented the Strict Administrator RBAC system where only users with `role: 'ADMIN'` can assign permissions (`EDIT`, `COMMENT`, `VIEW`), invite members, or remove members.
+- Designed foreign-key safe cascade document reassignment, automatically reassigning documents to the active administrator when a member is deleted so no workspace data is orphaned.
+- Built bidirectional credentials synchronization between disk (`credentials/*.json`) and the database (`prisma.user`), keeping files and database in lockstep.
+- Architected dual-layer state retention (`localStorage` + URL query parameters) preserving the active workspace, document, modality, and user persona across page refreshes (`F5`).
+- Implemented the interactive comment drawer with text quote anchors, multi-format export suite (PDF, DOC, XML, HTML, MD, CSV, PPT), and 1-click Version History snapshot rollback engine.
 
 ### Key Learnings & Takeaways:
-- **60 FPS Cursor Tracking & Awareness Throttling:** Translating high-frequency mouse movements on an infinite canvas into smooth remote cursors required understanding browser event loop cycles and CSS transform transitions. Using CSS `transition: transform 80ms ease-out` on remote cursor SVGs provided butter-smooth rendering without jitter.
-- **Designing for Intentional Governance:** Real-time collaboration without permissions quickly degenerates into accidental overwrites. Designing clear permission gates—where changing a user to `VIEW` immediately locks the editor and hides editing toolbars—demonstrated how security policies must reflect in the user interface.
+- **Reactive Formula Computation on CRDT Cell Maps:** Building a spreadsheet formula engine over a decentralized CRDT required decoupling raw cell formulas from evaluated display values. Storing raw inputs (`=SUM(A1:B5)`) in `yDoc.getMap('sheet_cells')` while evaluating the dependency graph reactively in the presentation layer ensured instantaneous convergence across peers without circular evaluation locks.
+- **60 FPS Cursor Tracking & Awareness Throttling:** Translating high-frequency mouse movements on an infinite canvas into smooth remote cursors required understanding browser event loop cycles and CSS transform transitions. Using CSS `transition: transform 80ms ease-out` on remote cursor SVGs provided butter-smooth rendering without jitter across both desktop and mobile touch devices.
+- **Enterprise Governance & Safe Cascade Deletion:** Real-time collaboration without permissions quickly degenerates into accidental overwrites or data loss. Designing strict Administrator RBAC, locking toolbars for viewers, and automatically reassigning documents when members are deleted reinforced the principle that distributed systems must maintain relational database integrity even under rapid user lifecycle changes.
+- **State Resilience & Refresh Hydration:** Single-page applications often suffer from state reset on browser refresh. Combining URL query parameters (`?ws=...&doc=...&mode=...`) with `localStorage` fallback created an unbreakable rehydration lifecycle where users never lose their active document or mode during development or review.
 - **Replayability & State Vector Rollback:** Building the version rollback button was an unforgettable moment: clicking "Restore Version" took an immutable binary snapshot from hours ago, fed it into `Y.applyUpdate(activeDoc, snapshotBlob, 'rollback')`, and watching all other open browser tabs instantly revert their document content without a single page reload.
 

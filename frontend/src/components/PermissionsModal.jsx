@@ -6,8 +6,7 @@ import {
   Shield,
   UserPlus,
   Lock,
-  Trash2,
-  AlertCircle
+  Trash2
 } from 'lucide-react';
 
 const PALETTE = [

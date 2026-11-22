@@ -8,7 +8,7 @@ This document provides complete reference specifications for SyncSpace REST endp
 
 | Service | Protocol | Base URL | Purpose |
 |---|---|---|---|
-| **REST API Server** | HTTP / JSON | `http://localhost:5001/api` | Auth, Workspaces, Documents, Comments, Snapshots |
+| **REST API Server** | HTTP / JSON | `http://localhost:5001/api` | Auth, Workspaces, Documents, Comments, Snapshots, Permissions |
 | **Real-Time CRDT Gateway** | WebSocket / Binary | `ws://localhost:1234` | Yjs document replication, awareness presence |
 | **Next.js Web Client** | HTTP / HTML | `http://localhost:3000` | Full-stack interactive collaboration frontend |
 
@@ -24,7 +24,7 @@ Returns system operational telemetry, active in-memory document count, and Redis
 ```json
 {
   "status": "healthy",
-  "timestamp": "2026-11-08T05:00:00.000Z",
+  "timestamp": "2026-11-20T12:00:00.000Z",
   "uptime": 1420.5,
   "activeCRDTDocuments": 3,
   "redisClustering": "connected"
@@ -33,17 +33,17 @@ Returns system operational telemetry, active in-memory document count, and Redis
 
 ---
 
-### 1.2 Authentication & Personas
+### 1.2 Authentication, Personas & Member Management
 #### `GET /api/auth/users`
-Lists the pre-seeded evaluation personas for quick 1-click persona switching.
+Lists active workspace users for 1-click persona switching. Automatically performs a two-way synchronization from `credentials/*.json` to the database before returning data.
 
 **Response `200 OK`:**
 ```json
 [
   {
-    "id": "usr_alice_01",
-    "name": "Alice Cooper",
-    "email": "alice@syncspace.io",
+    "id": "usr_mushraf_01",
+    "name": "Md Mushraf Ali",
+    "email": "mushraf@gmail.com",
     "color": "#3b82f6",
     "role": "ADMIN"
   },
@@ -63,8 +63,8 @@ Authenticates a user and issues an authorization token.
 **Request Body:**
 ```json
 {
-  "email": "alice@syncspace.io",
-  "password": "Password@123"
+  "email": "mushraf@gmail.com",
+  "password": "mushraf8520"
 }
 ```
 
@@ -72,34 +72,64 @@ Authenticates a user and issues an authorization token.
 ```json
 {
   "user": {
-    "id": "usr_alice_01",
-    "name": "Alice Cooper",
-    "email": "alice@syncspace.io",
+    "id": "usr_mushraf_01",
+    "name": "Md Mushraf Ali",
+    "email": "mushraf@gmail.com",
     "color": "#3b82f6",
     "role": "ADMIN"
   },
-  "token": "demo-token-usr_alice_01"
+  "token": "demo-token-usr_mushraf_01"
 }
 ```
+
+#### `POST /api/auth/users`
+Registers a new team member and automatically saves their profile to `credentials/*.json`.
+- **Security:** If `requesterId` is passed, strictly enforces that the requester must have the `ADMIN` role (`403 Forbidden` if non-admin).
+
+**Request Body:**
+```json
+{
+  "name": "Sarah Connor",
+  "email": "sarah@syncspace.io",
+  "role": "EDIT",
+  "color": "#ec4899",
+  "workspaceId": "ws_acme_lab",
+  "requesterId": "usr_mushraf_01"
+}
+```
+
+#### `DELETE /api/auth/users/:userId`
+Removes a team member from the workspace and database.
+- **Security:** Requires `requesterId` with `ADMIN` role.
+- **Safety Guarantees:** 
+  1. Prevents deletion of the only remaining Administrator.
+  2. Prevents self-removal.
+  3. Safely reassigns all documents and snapshots created by the user to the active Administrator so no data is lost.
+  4. Cleans up workspace memberships and document permissions.
+  5. Automatically purges the user from `credentials/*.json` on disk.
 
 ---
 
 ### 1.3 Workspaces
 #### `GET /api/workspaces`
-Lists workspaces accessible to the authenticated user.
+Lists workspaces accessible to the authenticated user with member details.
 
 #### `POST /api/workspaces`
-Creates a new workspace.
+Creates a new workspace. Initializes clean without demo data so users can begin entering their own documents immediately.
 
 **Request Body:**
 ```json
 {
-  "name": "AI Systems Lab",
-  "icon": "🤖",
-  "description": "Collaborative research and engineering.",
-  "ownerId": "usr_alice_01"
+  "name": "Product Systems Lab",
+  "icon": "🚀",
+  "description": "Cross-functional collaborative workspace.",
+  "ownerId": "usr_mushraf_01"
 }
 ```
+
+#### `DELETE /api/workspaces/:workspaceId`
+Deletes a workspace and cascades cleanup to all nested documents, sticky notes, and permissions.
+- **Safety:** Rejects deletion if only 1 workspace remains.
 
 ---
 
@@ -107,39 +137,17 @@ Creates a new workspace.
 #### `GET /api/workspaces/:workspaceId/documents`
 Retrieves all documents within a workspace, including parent/child relationships for recursive tree rendering.
 
-**Response `200 OK`:**
-```json
-[
-  {
-    "id": "doc_welcome_01",
-    "workspaceId": "ws_acme_lab",
-    "parentId": null,
-    "title": "Welcome to SyncSpace",
-    "icon": "🚀",
-    "createdAt": "2026-10-30T10:00:00.000Z"
-  },
-  {
-    "id": "doc_rfc_crdt_02",
-    "workspaceId": "ws_acme_lab",
-    "parentId": "doc_welcome_01",
-    "title": "RFC-104: CRDT Synchronization",
-    "icon": "📜",
-    "createdAt": "2026-10-31T14:30:00.000Z"
-  }
-]
-```
-
 #### `POST /api/documents`
-Creates a new document or subpage.
+Creates a new document, spreadsheet, slide deck, or whiteboard canvas page.
 
 **Request Body:**
 ```json
 {
   "workspaceId": "ws_acme_lab",
-  "parentId": "doc_welcome_01",
-  "title": "Sprint 4 Roadmap",
-  "icon": "🎯",
-  "createdBy": "usr_alice_01"
+  "parentId": null,
+  "title": "Q4 Financial Model",
+  "icon": "📊",
+  "createdBy": "usr_mushraf_01"
 }
 ```
 
@@ -147,7 +155,7 @@ Creates a new document or subpage.
 Retrieves full metadata, content cache, and canvas data for a document.
 
 #### `PUT /api/documents/:id`
-Updates document title, icon, or content.
+Updates document title, icon, content, or canvas objects.
 
 #### `DELETE /api/documents/:id`
 Soft-archives a document (`isArchived = true`).
@@ -158,34 +166,16 @@ Soft-archives a document (`isArchived = true`).
 #### `GET /api/documents/:id/comments`
 Retrieves threaded discussion comments on a document.
 
-**Response `200 OK`:**
-```json
-[
-  {
-    "id": "comm_01",
-    "documentId": "doc_welcome_01",
-    "content": "The TipTap integration with y-websocket feels super smooth!",
-    "selectedText": "sub-5ms synchronized typing",
-    "isResolved": false,
-    "createdAt": "2026-11-01T12:00:00.000Z",
-    "author": {
-      "name": "Bob Smith",
-      "color": "#10b981"
-    }
-  }
-]
-```
-
 #### `POST /api/documents/:id/comments`
-Adds a new comment.
+Adds a new comment anchored to a text selection range or canvas position.
 
 **Request Body:**
 ```json
 {
   "userId": "usr_bob_02",
-  "content": "Please review this paragraph.",
-  "selectedText": "Conflict-Free Replicated Data Types",
-  "position": { "from": 120, "to": 155 }
+  "content": "Please review this cell formula.",
+  "selectedText": "=SUM(B3:D3)",
+  "position": { "from": 12, "to": 24 }
 }
 ```
 
@@ -204,9 +194,9 @@ Creates an immutable snapshot revision of the active document state.
 **Request Body:**
 ```json
 {
-  "title": "v1.2 Post Design Review",
-  "description": "Integrated sticky note diagram and adjusted headings",
-  "createdBy": "usr_alice_01"
+  "title": "v2.0 Milestone Release",
+  "description": "Completed spreadsheet formula audit and added presentation slides",
+  "createdBy": "usr_mushraf_01"
 }
 ```
 
@@ -215,18 +205,20 @@ Restores the document to the specified historical snapshot and broadcasts the re
 
 ---
 
-### 1.7 Permissions & Access Control
+### 1.7 Permissions & Access Control (RBAC)
 #### `GET /api/documents/:id/permissions`
 Lists user access levels on the document (`EDIT`, `COMMENT`, `VIEW`).
 
 #### `POST /api/documents/:id/permissions`
 Upserts a user's permission level.
+- **Security:** If `requesterId` is provided, enforces that only users with `ADMIN` role can adjust permissions (`403 Forbidden` if unauthorized).
 
 **Request Body:**
 ```json
 {
-  "userId": "usr_diana_04",
-  "role": "COMMENT"
+  "userId": "usr_bob_02",
+  "role": "EDIT",
+  "requesterId": "usr_mushraf_01"
 }
 ```
 
@@ -241,7 +233,7 @@ SyncSpace connects clients using binary WebSocket messages encoded with `lib0/en
 | Byte Code | Name | Payload Description |
 |---|---|---|
 | `0` | **`messageSync`** | Carries Yjs synchronization protocol frames (Step 1, Step 2, or incremental Update). |
-| `1` | **`messageAwareness`** | Carries ephemeral user presence (cursor coordinates, selection, user identity). |
+| `1` | **`messageAwareness`** | Carries ephemeral user presence (cursor coordinates, selection, user identity, peer cell selections). |
 | `2` | **`messageAuth`** | Reserved for connection token verification. |
 
 ### Synchronization Sub-Messages
@@ -255,13 +247,13 @@ Awareness updates are encoded as VarUint client count + JSON state dictionaries:
 ```json
 {
   "user": {
-    "name": "Alice Cooper",
+    "name": "Md Mushraf Ali",
     "color": "#3b82f6",
-    "id": "usr_alice_01"
+    "id": "usr_mushraf_01"
   },
   "cursor": { "x": 380, "y": 210 },
-  "canvasCursor": { "x": 640, "y": 320 }
+  "canvasCursor": { "x": 640, "y": 320 },
+  "selectedCell": "C4"
 }
 ```
 Client heartbeats occur every 30 seconds to automatically prune disconnected peers.
-

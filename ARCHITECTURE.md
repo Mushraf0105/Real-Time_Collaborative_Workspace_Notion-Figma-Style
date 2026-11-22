@@ -1,6 +1,6 @@
 # SyncSpace System Architecture & Technical Specification
 
-SyncSpace is a distributed, real-time collaborative workspace combining **Notion-style structured block editing** and **Figma-style infinite visual canvas diagramming**. This document details the architectural decisions, mathematical CRDT models, WebSocket protocol, Redis horizontal scaling topology, and database schemas.
+SyncSpace is a distributed, real-time collaborative workspace suite combining **Notion-style structured block editing**, **Figma-style infinite visual canvas diagramming**, **Excel-style collaborative spreadsheets**, and **PowerPoint-style presentation slides**. This document details the architectural decisions, mathematical CRDT models, WebSocket protocol, Redis horizontal scaling topology, and database schemas.
 
 ---
 
@@ -9,9 +9,9 @@ SyncSpace is a distributed, real-time collaborative workspace combining **Notion
 ```mermaid
 flowchart TD
     subgraph Clients["Client Browsers (Collaborators)"]
-        ClientA["Browser A (Alice - Lead)"]
+        ClientA["Browser A (Mushraf - Admin)"]
         ClientB["Browser B (Bob - Engineer)"]
-        ClientC["Browser C (Charlie - Designer)"]
+        ClientC["Browser C (Test Collaborator)"]
     end
 
     subgraph Edge["Load Balancer / Reverse Proxy"]
@@ -29,7 +29,8 @@ flowchart TD
 
     subgraph Storage["Persistence & Relational Layer"]
         Prisma["Prisma ORM Engine"]
-        Postgres["PostgreSQL / SQLite Storage<br/>• Users & RBAC<br/>• Workspaces & Tree<br/>• Binary Yjs Snapshots<br/>• Comments & Revisions"]
+        Postgres["PostgreSQL / SQLite Storage<br/>• Users & Strict RBAC<br/>• Workspaces & Tree<br/>• Binary Yjs Snapshots<br/>• Comments & Revisions"]
+        Creds["Disk Credentials Sync<br/>• Admin.json<br/>• Member.json<br/>• Viewer.json<br/>• users.json"]
     end
 
     ClientA -->|WebSocket y-protocol| WS1
@@ -42,13 +43,39 @@ flowchart TD
     WS1 -->|Debounced Persistence| Prisma
     WS2 -->|Debounced Persistence| Prisma
     Prisma --> Postgres
+    Prisma <-->|Two-Way Sync| Creds
 ```
 
 ---
 
-## 2. CRDT Foundations vs Operational Transformation (OT)
+## 2. Four Collaborative Workplace Modalities
 
-### 2.1 Why CRDTs over OT?
+SyncSpace provides four synchronized modalities powered by Yjs data structures:
+
+```
+┌────────────────────────────────────────────────────────────────────────┐
+│  [📝 Document (Notion)]  [🎨 Canvas (Figma)]  [📊 Spreadsheet (Excel)]  [📽️ Slides (PowerPoint)] │
+└────────────────────────────────────────────────────────────────────────┘
+```
+
+1. **Notion Document (`DocumentEditor.jsx`):**
+   - **CRDT Structure:** Doubly-linked sequence item list via `y-prosemirror`.
+   - **Features:** Headings, interactive tables, task lists, code blocks, quote blocks, remote carets.
+2. **Figma Canvas (`CollaborativeCanvas.jsx`):**
+   - **CRDT Structure:** Spatial key-value dictionary via `yDoc.getMap('canvas_notes')`.
+   - **Features:** 2D coordinate sticky notes, touch drag support, live colored cursors.
+3. **Excel Spreadsheet (`CollaborativeSpreadsheet.jsx`):**
+   - **CRDT Structure:** Cell matrix dictionary via `yDoc.getMap('sheet_cells')`.
+   - **Features:** Real-time formula engine (`=SUM`, `=AVG`, `=COUNT`, arithmetic), currency/percentage formatting, peer cell selection awareness, CSV export.
+4. **PowerPoint Slides (`CollaborativeSlides.jsx`):**
+   - **CRDT Structure:** Slide array dictionary via `yDoc.getMap('slides_data')`.
+   - **Features:** 5 visual themes, 5 slide layouts, speaker notes, fullscreen Presenter Mode (`F5`), printable 16:9 export.
+
+---
+
+## 3. CRDT Foundations vs Operational Transformation (OT)
+
+### 3.1 Why CRDTs over OT?
 Traditional collaborative systems (e.g., Google Docs v1) rely on **Operational Transformation (OT)**. OT requires:
 1. A **central authority** to establish a global operation sequence ($op_1, op_2, \dots$).
 2. Transformation matrices ($T(op_A, op_B)$) that grow exponentially with operation complexity.
@@ -62,7 +89,7 @@ SyncSpace implements **Conflict-Free Replicated Data Types (CRDTs)** via **Yjs**
 - **Idempotency:** Re-transmitting or duplicate delivery of the same update produces no change:
   $$A \circ A = A$$
 
-### 2.2 Yjs Sequence CRDT Mechanics
+### 3.2 Yjs Sequence CRDT Mechanics
 Yjs represents a collaborative document as a doubly-linked list of **Items**:
 $$\text{Item} = \langle \text{ID}, \text{Left}, \text{Right}, \text{Content}, \text{DeletedFlag} \rangle$$
 
@@ -71,7 +98,7 @@ $$\text{Item} = \langle \text{ID}, \text{Left}, \text{Right}, \text{Content}, \t
 - **Insertions:** When an item is inserted between item $L$ and item $R$, it records $L$ and $R$ as its immutable left and right origin pointers. Even if another peer inserts concurrently, the deterministic sorting of $(\text{clock}, \text{client\_id})$ guarantees identical ordering across all replicas.
 - **Deletions & Garbage Collection:** Deletions do not shift character offsets. Instead, an item is marked with a **tombstone** ($\text{DeletedFlag} = \text{true}$), ensuring that concurrent insertions pointing to the deleted item remain valid.
 
-### 2.3 State Vector Sync Protocol (`y-protocols/sync`)
+### 3.3 State Vector Sync Protocol (`y-protocols/sync`)
 Instead of transmitting the entire document on every keystroke, SyncSpace utilizes a **2-Step State Vector Handshake**:
 
 ```mermaid
@@ -96,28 +123,27 @@ sequenceDiagram
 
 ---
 
-## 3. Real-Time Presence & Awareness Protocol
+## 4. Real-Time Presence & Awareness Protocol
 
-Collaborative awareness (colored cursors, live selections, and active user avatars) operates over the binary `y-protocols/awareness` channel:
+Collaborative awareness (colored cursors, live selections, peer grid highlights, and active user avatars) operates over the binary `y-protocols/awareness` channel:
 1. **Local State Broadcast:** Each client periodically broadcasts an awareness dictionary:
    ```json
    {
      "user": {
-       "id": "usr_alice_01",
-       "name": "Alice Cooper",
+       "id": "usr_mushraf_01",
+       "name": "Md Mushraf Ali",
        "color": "#3b82f6",
-       "avatar": "https://...",
        "role": "ADMIN"
      },
      "cursor": { "x": 420, "y": 180 },
-     "selection": { "from": 12, "to": 28 }
+     "selectedCell": "B4"
    }
    ```
 2. **Ephemeral Nature:** Unlike document CRDT updates, awareness states are **ephemeral** and not persisted to disk. If a client disconnects, a heartbeat timeout (30 seconds) automatically prunes the user from the active collaborator list.
 
 ---
 
-## 4. Multi-Instance Horizontal Scaling with Redis Pub/Sub
+## 5. Multi-Instance Horizontal Scaling with Redis Pub/Sub
 
 To scale across multiple WebSocket server instances without session affinity or sticky load-balancing bottlenecks:
 1. **Channel Namespacing:** Every document has a dedicated Redis channel:
@@ -129,7 +155,23 @@ To scale across multiple WebSocket server instances without session affinity or 
 
 ---
 
-## 5. Database Schema & Entity-Relationship Model
+## 6. Strict Administrator RBAC & Safe Ownership Reassignment
+
+SyncSpace implements enterprise Role-Based Access Control:
+
+1. **Role Enforcement:**
+   - Only `ADMIN` can assign `EDIT`, `COMMENT`, or `VIEW` permissions.
+   - Only `ADMIN` can invite new team members or remove existing members.
+   - Non-admins see read-only status pills and cannot trigger administrative mutations.
+2. **Safe Ownership Reassignment on Removal:**
+   - When a user is removed, any documents, sticky notes, or historical snapshots created by that user are safely reassigned to the active Administrator before the user is deleted from the database.
+   - This guarantees that no documents are orphaned and zero database foreign-key constraint violations can occur.
+3. **Bidirectional Disk Credentials Sync:**
+   - Changes made directly to `credentials/*.json` on disk are automatically parsed and reconciled into `prisma.user` on server startup and on every user list query.
+
+---
+
+## 7. Database Schema & Entity-Relationship Model
 
 ```mermaid
 erDiagram
@@ -212,20 +254,3 @@ erDiagram
         datetime createdAt
     }
 ```
-
----
-
-## 6. Granular Access Control & Version History Revert
-
-### 6.1 Permission Matrix
-- **`EDIT` (Full Access):** User can insert/delete blocks, modify formatting, create/move canvas notes, resolve comments, and save snapshots.
-- **`COMMENT` (Reviewer):** TipTap editor is set to read-only (`editor.setEditable(false)`). User can select text and submit threaded discussion comments.
-- **`VIEW` (Observer):** Strict read-only mode for both document and canvas.
-
-### 6.2 Version Snapshot & Rollback Engine
-1. **Snapshot Creation:** An immutable row is created in `DocumentSnapshot` recording the current `version`, author, summary, and binary `Y.encodeStateAsUpdate(ydoc)`.
-2. **1-Click Rollback:** When restoring an older version, the server:
-   - Updates the database row with the historical state.
-   - Applies the historical binary update to the active in-memory `Y.Doc`.
-   - Broadcasts the rollback update across Redis Pub/Sub, immediately rewinding the active text for all currently connected browser peers in real time!
-

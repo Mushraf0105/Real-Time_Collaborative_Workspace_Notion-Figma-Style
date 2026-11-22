@@ -1,4 +1,4 @@
-# SyncSpace: Engineering a Real-Time Collaborative Workspace
+# SyncSpace: Engineering a Real-Time Collaborative Workspace Suite
 ## 10-Minute Final Presentation & Technical Demonstration
 
 ---
@@ -7,12 +7,12 @@
 
 | Slide | Topic | Focus Area | Allotted Time |
 |---|---|---|---|
-| **Slide 1** | Project Overview & Mission | Real-Time Notion & Figma Hybrid | 1:00 min |
+| **Slide 1** | Project Overview & Mission | 4-in-1 Notion, Figma, Excel & PowerPoint Suite | 1:00 min |
 | **Slide 2** | The Problem: Concurrency & OT Limits | Why Traditional Locking Fails | 1:30 min |
 | **Slide 3** | Solution Architecture: CRDT Core | Mathematical Commutativity in Yjs | 1:30 min |
-| **Slide 4** | Dual Collaborative Experience | TipTap Editor + Infinite Canvas | 1:30 min |
+| **Slide 4** | Quadruple Collaborative Modality | Document, Canvas, Spreadsheet & Presentation Slides | 1:30 min |
 | **Slide 5** | Multi-Instance Scaling with Redis | Redis Pub/Sub Replication Bus | 1:30 min |
-| **Slide 6** | Governance, RBAC & Version History | Granular Roles & Revert Engine | 1:00 min |
+| **Slide 6** | Governance, Strict Admin RBAC & State Retention | Role Gates, Safe Reassignment & Dual-Layer Persistence | 1:00 min |
 | **Slide 7** | Empirical Results & 50-Peer Benchmark | Stress Testing with Gutenberg Data | 1:00 min |
 | **Slide 8** | Key Challenges & Future Roadmap | Engineering Triumphs & Next Steps | 1:00 min |
 
@@ -21,17 +21,19 @@
 ## 📽️ Slide 1: Mission & Executive Summary
 
 ### Visual Layout:
-- **Title:** SyncSpace — Next-Generation Real-Time Collaborative Workspace
-- **Subtitle:** Blending Notion-Style Structured Block Writing and Figma-Style Visual Canvas
-- **Tech Stack Badges:** Next.js 14 | Yjs CRDT | WebSockets | Redis Pub/Sub | PostgreSQL | Prisma
-- **Core Value Proposition:** Several people edit the same document or canvas simultaneously, observe each other's live cursors, and never lose changes.
+- **Title:** SyncSpace — Enterprise Real-Time Collaborative Workspace Suite
+- **Subtitle:** Unifying Notion Block Docs, Figma Infinite Canvas, Excel Spreadsheets, and PowerPoint Presentation Slides
+- **Tech Stack Badges:** Next.js 14 | Yjs CRDT | WebSockets | Redis Pub/Sub | SQLite / PostgreSQL | Prisma
+- **Core Value Proposition:** Multiple collaborators edit documents, draw on canvases, calculate formulas, and present slide decks simultaneously with zero merge conflicts, live colored presence, strict Admin RBAC, and bidirectional credentials synchronization.
 
 ### 🎙️ Speaker Script:
-> "Good morning, reviewers and engineering leads. Today, we are proud to present **SyncSpace**, our high-performance collaborative workspace.
+> "Good morning, reviewers and engineering leads. Today, we are proud to present **SyncSpace**, our high-performance collaborative workspace suite.
 >
-> Modern productivity apps are often fragmented: teams write specs in Notion, brainstorm diagrams in Figma, and manage feedback in yet another tool. SyncSpace unites both modalities in a single workspace: users can seamlessly toggle between a **rich-text block document editor** and an **infinite collaborative whiteboard canvas**, with instantaneous sub-5ms synchronization, colored peer cursor presence, threaded review comments, and immutable snapshot rollback.
+> Modern productivity software is fragmented: teams write specs in Notion, diagram systems in Figma, track financials in Excel, and pitch decks in PowerPoint. SyncSpace unites all four modalities in a single real-time collaborative workspace.
 >
-> Over the next ten minutes, we will walk you through the distributed systems architecture, our CRDT conflict resolution engine, horizontal scaling benchmarks, and the real-world results."
+> Collaborators can seamlessly toggle between a **rich-text block document editor**, an **infinite collaborative canvas**, a **formula-enabled collaborative spreadsheet**, and **presentation slides with a fullscreen Presenter Mode**—all backed by instantaneous sub-millisecond synchronization, colored peer cursor presence, strict Administrator RBAC, bidirectional credentials sync, and immutable version rollback.
+>
+> Over the next ten minutes, we will walk you through our distributed CRDT conflict resolution engine, the multi-modal UX, horizontal Redis scaling, and our rigorous stress testing results."
 
 ---
 
@@ -63,23 +65,28 @@
 - **Tombstones:** Why deletions never shift offset indices
 
 ### 🎙️ Speaker Script:
-> "Let's inspect how Yjs achieves this under the hood. Every character or canvas element is represented as an Item with a unique ID: client ID plus a logical clock. When an item is inserted, it permanently anchors itself to its left and right neighbor origins.
+> "Let's inspect how Yjs achieves this under the hood. Every character, sticky note, spreadsheet cell, or slide element is represented as an Item with a unique ID: client ID plus a logical clock. When an item is inserted, it permanently anchors itself to its left and right neighbor origins.
 >
 > Furthermore, when a client reconnects or enters a document, we don't transfer megabytes of document history. Instead, we perform a lightweight state vector handshake. The client sends its version vector; the server computes the exact missing delta update—typically only 50 bytes—and synchronizes the client instantly."
 
 ---
 
-## 📽️ Slide 4: Dual Collaborative Modality — Document & Canvas
+## 📽️ Slide 4: Quadruple Collaborative Modality — Document, Canvas, Spreadsheet & Slides
 
 ### Visual Layout:
-- **Split Screen Mockup:**
-  - **Left (Document Mode):** TipTap WYSIWYG editor with live colored cursors (`Alice Cooper`, `Bob Smith`), heading/table formatting, slash commands, and inline comment bubbles.
-  - **Right (Canvas Mode):** Draggable sticky notes and diagram cards synchronized across peers using Yjs `Y.Map` with real-time mouse pointer tracking.
+- **4-Way Modality Grid:**
+  - **1. Notion-Style Document:** TipTap WYSIWYG block editor with live colored carets (`Alice`, `Bob`), heading/table formatting, slash commands, task lists, and inline text comments.
+  - **2. Figma-Style Canvas:** Infinite 2D whiteboard with multi-colored sticky notes synchronized across peers using Yjs `Y.Map` with real-time mouse and touch tracking.
+  - **3. Excel-Style Spreadsheet:** Collaborative grid synced via `yDoc.getMap('sheet_cells')`, live formula engine (`=SUM`, `=AVG`, `=COUNT`, arithmetic), peer cell selection awareness, and CSV export.
+  - **4. PowerPoint-Style Slides:** Real-time presentation deck synced via `yDoc.getMap('slides_data')`, 5 themes, 5 slide layouts, speaker notes, and fullscreen Presenter Mode (`F5`).
 
 ### 🎙️ Speaker Script:
-> "In SyncSpace, collaboration isn't restricted to text. In **Document Mode**, we integrate TipTap and ProseMirror with the Yjs Collaboration plugin, showing each peer's colored caret and name flag as they type.
+> "In SyncSpace, collaboration extends across four core productivity tools:
 >
-> With a single click, users can toggle to **Canvas Mode**—a Figma-inspired 2D infinite whiteboard. Sticky notes and architecture blocks are stored in a Yjs `Y.Map`. When one user drags a sticky note across the screen, the coordinate updates stream through WebSockets and render smoothly at 60 FPS on all peer screens."
+> 1. In **Document Mode**, we integrate TipTap and ProseMirror with Yjs Collaboration, showing each peer's colored caret and name flag as they type.
+> 2. With one click, users toggle to **Canvas Mode**—a Figma-inspired infinite whiteboard with draggable sticky notes streaming updates at 60 FPS across desktop and touch screens.
+> 3. In **Spreadsheet Mode**, users get a collaborative Excel grid with reactive formula evaluation (`=SUM(A1:B5)`, `=AVG(...)`, `=COUNT(...)`), real-time peer cell highlighting, and 1-click CSV export.
+> 4. Finally, in **Slides Mode**, teams prepare presentation decks together with customizable themes, speaker notes, and launch into a distraction-free fullscreen Presenter Mode."
 
 ---
 
@@ -101,23 +108,27 @@
 
 ---
 
-## 📽️ Slide 6: Governance, Granular RBAC & Version Rollback
+## 📽️ Slide 6: Governance, Strict Admin RBAC & State Retention
 
 ### Visual Layout:
-- **Permissions Grid:**
-  - `EDIT`: Full read/write access
-  - `COMMENT`: Read and highlight text to submit review threads; typing disabled
-  - `VIEW`: Strict read-only observer mode
-- **Version History Drawer:**
-  - Snapshot timeline (`v1.0`, `v1.1`, `v1.2`) with 1-click 'Restore Version' button
+- **Strict Administrator RBAC Matrix:**
+  - `ADMIN`: Exclusive right to assign roles (`EDIT`, `COMMENT`, `VIEW`), invite members, and remove members.
+  - `EDIT`: Full read/write document collaboration.
+  - `COMMENT`: Read-only access with text highlight commenting.
+  - `VIEW`: Strict read-only observer mode with locked toolbars.
+- **Data Integrity & Reassignment:** Safe reassignment of all documents to the active Administrator when a member is deleted.
+- **Bidirectional Credentials Sync:** Real-time two-way sync between disk (`credentials/*.json`) and the database (`prisma.user`).
+- **Refresh State Retention:** Dual-layer URL parameters + `localStorage` rehydration preserving workspace, document, and modality on `F5`.
+- **Version History Drawer:** Snapshot timeline (`v1.0`, `v1.1`, `v1.2`) with 1-click 'Restore Version' button.
 
 ### 🎙️ Speaker Script:
-> "Real-time collaboration without permissions creates chaos. We built **Granular Access Control**:
-> - Document owners can grant `EDIT`, `COMMENT`, or `VIEW` access per user.
-> - If an evaluator switches to Diana Prince (Viewer), the editor locks down immediately into read-only mode.
-> - Reviewers can highlight text and leave threaded comments with resolve workflows.
+> "Real-time collaboration without strict governance leads to security vulnerabilities. We engineered an enterprise-grade access control and state retention system:
 >
-> Furthermore, users can save immutable snapshots. If an unwanted change occurs, clicking **Restore Version** replays the snapshot binary update through Yjs, immediately rolling back the document for all connected browsers in real time."
+> - **Strict Administrator RBAC:** Only Administrators can assign `Edit`, `Comment`, or `View` permissions, invite new users, or delete members. Non-admins see clear read-only lock badges.
+> - **Foreign-Key Safe Deletion:** When an admin removes a user, their documents and notes are automatically reassigned to the administrator—preventing orphaned records and database corruption.
+> - **Bidirectional Credentials Sync:** Edits made directly to `credentials/*.json` on disk automatically reflect in the database and web UI on boot and API fetch.
+> - **Page Refresh Resilience:** Active workspace, document, modality, and user are stored in both URL query parameters and local storage, ensuring zero state loss on page refresh.
+> - **Version Rollback:** Users can save immutable snapshots and restore previous versions in real time across all connected browsers."
 
 ---
 
@@ -147,18 +158,21 @@
 
 ### Visual Layout:
 - **Challenges Overcome:**
-  1. Debounced persistence to avoid overwhelming PostgreSQL on every single keystroke.
-  2. Redis broadcast echo prevention via origin attribution.
-  3. Seamless zero-config local portability across SQLite, PostgreSQL, and Docker.
+  1. 4-in-1 multi-modal CRDT synchronization (TipTap text, canvas sticky notes, spreadsheet cells, and presentation slides).
+  2. Reactive spreadsheet formula engine (`=SUM`, `=AVG`, `=COUNT`, arithmetic) over CRDT cell maps.
+  3. Strict Administrator RBAC with safe cascade document ownership reassignment.
+  4. Bidirectional disk-to-database credentials synchronization (`credentials/*.json` <-> `dev.db`).
+  5. Dual-layer browser state persistence preventing reset on page refresh.
+  6. Debounced persistence and Redis broadcast loop prevention.
 - **Future Roadmap:**
-  - Canvas connecting lines & vector shapes.
-  - End-to-end client-side encryption.
-  - Offline-first IndexedDB persistence for mobile PWA.
+  - Multi-cell range dragging and advanced charting in spreadsheets.
+  - Real-time video conferencing overlay via WebRTC.
+  - Offline-first IndexedDB persistence with background service worker synchronization.
 
 ### 🎙️ Speaker Script:
-> "Engineering this system taught us invaluable lessons about distributed state synchronization, binary encoding protocols, and defensive API design.
+> "Engineering this system taught us invaluable lessons about distributed state synchronization, binary encoding protocols, reactive UI state machines, and defensive API design.
 >
-> We met and exceeded every requirement in the project brief: Next.js frontend, y-websocket server, Yjs CRDTs, Redis scaling, Prisma schema with PostgreSQL, presence cursors, comments, version rollback, and load testing.
+> We met and exceeded every requirement in the project brief: Next.js frontend, y-websocket server, Yjs CRDTs, Redis scaling, Prisma schema with PostgreSQL and SQLite, presence cursors, comments, version rollback, 4 workplace modalities, strict admin RBAC, and load testing.
 >
 > Thank you, and we welcome any questions!"
 
