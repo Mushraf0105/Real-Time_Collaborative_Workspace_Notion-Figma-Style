@@ -238,7 +238,20 @@ app.get('/api/workspaces', async (req, res) => {
 
 app.post('/api/workspaces', async (req, res) => {
   try {
-    const { name, icon, description, ownerId } = req.body;
+    const { name, icon, description, ownerId, requesterId } = req.body;
+
+    // RBAC: Only Administrators can create workspaces
+    const adminCheckId = requesterId || ownerId;
+    if (adminCheckId) {
+      const isAdmin = await isUserAdmin(adminCheckId);
+      if (!isAdmin) {
+        return res.status(403).json({ error: 'Only Administrators can create workspaces.' });
+      }
+    }
+
+    const adminUser = await prisma.user.findFirst({ where: { role: 'ADMIN' } });
+    const effectiveOwnerId = ownerId || requesterId || adminUser?.id;
+
     const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, '-') + '-' + Date.now().toString(36);
     const workspace = await prisma.workspace.create({
       data: {
@@ -246,9 +259,9 @@ app.post('/api/workspaces', async (req, res) => {
         slug,
         icon: icon || '📁',
         description,
-        ownerId: ownerId || 'usr_alice_01',
+        ownerId: effectiveOwnerId,
         members: {
-          create: [{ userId: ownerId || 'usr_alice_01', role: 'OWNER' }],
+          create: [{ userId: effectiveOwnerId, role: 'OWNER' }],
         },
       },
       include: {
@@ -265,12 +278,30 @@ app.delete('/api/workspaces/:workspaceId', async (req, res) => {
   try {
     const { workspaceId } = req.params;
 
+    // RBAC: Only Administrators can delete workspaces
+    const requesterId = req.query.requesterId || req.body?.requesterId;
+    if (requesterId) {
+      const isAdmin = await isUserAdmin(requesterId);
+      if (!isAdmin) {
+        return res.status(403).json({ error: 'Only Administrators can delete workspaces.' });
+      }
+    }
+
     // Check count of remaining workspaces - prevent deleting last workspace
     const count = await prisma.workspace.count();
     if (count <= 1) {
       return res.status(400).json({ error: 'Cannot delete the only remaining workspace.' });
     }
 
+    const docs = await prisma.document.findMany({ where: { workspaceId }, select: { id: true } });
+    const docIds = docs.map((d) => d.id);
+    if (docIds.length > 0) {
+      await prisma.comment.deleteMany({ where: { documentId: { in: docIds } } });
+      await prisma.documentSnapshot.deleteMany({ where: { documentId: { in: docIds } } });
+      await prisma.documentPermission.deleteMany({ where: { documentId: { in: docIds } } });
+      await prisma.document.deleteMany({ where: { id: { in: docIds } } });
+    }
+    await prisma.workspaceMember.deleteMany({ where: { workspaceId } });
     await prisma.workspace.delete({
       where: { id: workspaceId },
     });

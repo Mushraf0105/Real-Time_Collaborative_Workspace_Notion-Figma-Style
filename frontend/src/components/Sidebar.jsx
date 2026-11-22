@@ -45,6 +45,8 @@ export default function Sidebar({
   const [isCreatingWs, setIsCreatingWs] = useState(false);
   const [expandedDocs, setExpandedDocs] = useState({});
 
+  const isAdmin = currentUser?.role === 'ADMIN';
+
   const toggleExpand = (docId, e) => {
     e.stopPropagation();
     setExpandedDocs((prev) => ({ ...prev, [docId]: !prev[docId] }));
@@ -152,6 +154,25 @@ export default function Sidebar({
             <ChevronDown size={16} className="text-slate-400 shrink-0 ml-1" />
           </button>
 
+          {/* Quick Delete Active Workspace for Admin (if multiple workspaces exist) */}
+          {isAdmin && workspaces.length > 1 && currentWorkspace && onDeleteWorkspace && (
+            <button
+              onClick={() => {
+                if (
+                  confirm(
+                    `Delete workspace "${currentWorkspace.name}"? All its documents, spreadsheets, and slides will be permanently deleted.`
+                  )
+                ) {
+                  onDeleteWorkspace(currentWorkspace.id);
+                }
+              }}
+              className="p-1.5 text-slate-400 hover:text-rose-600 rounded-lg hover:bg-rose-50 transition-colors shrink-0"
+              title={`Delete current workspace "${currentWorkspace.name}" (Admin only)`}
+            >
+              <Trash2 size={15} />
+            </button>
+          )}
+
           {/* Close Sidebar Button on Mobile */}
           <button
             onClick={onClose}
@@ -169,8 +190,9 @@ export default function Sidebar({
                 onClick={() => setWorkspaceMenuOpen(false)}
               />
               <div className="absolute top-full left-3 right-3 mt-1 bg-white border border-slate-200 rounded-xl shadow-xl z-50 p-1.5 space-y-1">
-              <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider px-2 py-1">
-                Workspaces
+              <div className="flex items-center justify-between text-[10px] font-bold text-slate-400 uppercase tracking-wider px-2 py-1">
+                <span>Workspaces ({workspaces.length})</span>
+                {isAdmin && <span className="text-blue-600 font-semibold lowercase">admin controls</span>}
               </div>
               {workspaces.map((ws) => (
                 <div
@@ -190,38 +212,53 @@ export default function Sidebar({
                     <span className="truncate">{ws.name}</span>
                   </div>
 
-                  {workspaces.length > 1 && onDeleteWorkspace && (
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        if (
-                          confirm(
-                            `Delete workspace "${ws.name}"? All its documents, spreadsheets, and slides will be permanently deleted.`
-                          )
-                        ) {
-                          onDeleteWorkspace(ws.id);
-                        }
-                      }}
-                      className="opacity-0 group-hover/ws:opacity-100 p-1 text-slate-400 hover:text-rose-600 rounded hover:bg-slate-200 transition-opacity shrink-0"
-                      title={`Delete "${ws.name}" workspace`}
-                    >
-                      <Trash2 size={13} />
-                    </button>
-                  )}
+                  <div className="flex items-center gap-1 shrink-0">
+                    {ws.id === currentWorkspace?.id && (
+                      <span className="text-[10px] font-semibold text-blue-600 bg-blue-100/70 px-1.5 py-0.5 rounded">
+                        Active
+                      </span>
+                    )}
+
+                    {isAdmin && workspaces.length > 1 && onDeleteWorkspace && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (
+                            confirm(
+                              `Delete workspace "${ws.name}"? All its documents, spreadsheets, and slides will be permanently deleted.`
+                            )
+                          ) {
+                            onDeleteWorkspace(ws.id);
+                          }
+                        }}
+                        className="p-1 text-slate-400 hover:text-rose-600 rounded hover:bg-rose-50 transition-colors shrink-0"
+                        title={`Delete "${ws.name}" workspace (Admin only)`}
+                      >
+                        <Trash2 size={13} />
+                      </button>
+                    )}
+                  </div>
                 </div>
               ))}
 
               <div className="pt-1 mt-1 border-t border-slate-100">
-                <button
-                  onClick={() => {
-                    setWorkspaceMenuOpen(false);
-                    setShowCreateWsModal(true);
-                  }}
-                  className="w-full flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-lg text-xs font-semibold text-blue-600 hover:bg-blue-50 transition-colors"
-                >
-                  <Plus size={13} />
-                  <span>+ Create New Workspace</span>
-                </button>
+                {isAdmin ? (
+                  <button
+                    onClick={() => {
+                      setWorkspaceMenuOpen(false);
+                      setShowCreateWsModal(true);
+                    }}
+                    className="w-full flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-lg text-xs font-semibold text-blue-600 hover:bg-blue-50 transition-colors"
+                  >
+                    <Plus size={13} />
+                    <span>+ Create New Workspace</span>
+                  </button>
+                ) : (
+                  <div className="flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-lg text-xs text-slate-400 bg-slate-50 border border-slate-100/80">
+                    <Shield size={12} className="text-slate-400 shrink-0" />
+                    <span>Only Admins can create workspaces</span>
+                  </div>
+                )}
               </div>
             </div>
             </>
@@ -434,8 +471,8 @@ export default function Sidebar({
         </div>
       </div>
 
-      {/* Create Workspace Modal */}
-      {showCreateWsModal && (
+      {/* Create Workspace Modal (Admin only) */}
+      {showCreateWsModal && isAdmin && (
         <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in duration-150 select-none">
           <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-sm overflow-hidden p-5 space-y-4">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">

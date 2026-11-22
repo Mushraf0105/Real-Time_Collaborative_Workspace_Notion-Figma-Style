@@ -282,6 +282,10 @@ export default function WorkspacePage() {
   };
 
   const handleCreateWorkspace = async ({ name, icon, description }) => {
+    if (currentUser?.role !== 'ADMIN') {
+      alert('Only Administrators can create workspaces.');
+      return;
+    }
     try {
       const res = await fetch(`${API_BASE}/workspaces`, {
         method: 'POST',
@@ -291,8 +295,14 @@ export default function WorkspacePage() {
           icon: icon || '📁',
           description: description?.trim() || '',
           ownerId: currentUser?.id,
+          requesterId: currentUser?.id,
         }),
       });
+      if (!res.ok) {
+        const err = await res.json();
+        alert(err.error || 'Failed to create workspace');
+        return;
+      }
       const newWs = await res.json();
       setWorkspaces((prev) => [...prev, newWs]);
       setCurrentWorkspace(newWs);
@@ -308,12 +318,16 @@ export default function WorkspacePage() {
   };
 
   const handleDeleteWorkspace = async (workspaceId) => {
+    if (currentUser?.role !== 'ADMIN') {
+      alert('Only Administrators can delete workspaces.');
+      return;
+    }
     if (workspaces.length <= 1) {
       alert('Cannot delete the only remaining workspace.');
       return;
     }
     try {
-      const res = await fetch(`${API_BASE}/workspaces/${workspaceId}`, {
+      const res = await fetch(`${API_BASE}/workspaces/${workspaceId}?requesterId=${currentUser?.id}`, {
         method: 'DELETE',
       });
       if (!res.ok) {
