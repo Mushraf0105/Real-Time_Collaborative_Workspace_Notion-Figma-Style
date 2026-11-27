@@ -125,7 +125,7 @@ app.post('/api/auth/users', async (req, res) => {
     }
 
     // Automatically save user details into credentials/ JSON files
-    saveUserToCredentialsFiles(user, ws?.name || 'Acme Innovation Lab');
+    saveUserToCredentialsFiles(user, ws?.name || 'Nexvia Technologies');
 
     res.status(201).json(user);
   } catch (err) {

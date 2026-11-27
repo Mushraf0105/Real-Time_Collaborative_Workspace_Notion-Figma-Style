@@ -20,7 +20,7 @@ const INITIAL_ROW_COUNT = 30;
 
 // Pre-seeded Financial Model Template
 const SAMPLE_BUDGET_TEMPLATE = {
-  A1: { raw: 'SyncSpace Q4 Financial Model', bold: true, color: '#1e3a8a', bg: '#eff6ff' },
+  A1: { raw: 'Nexvia Technologies Financial Model', bold: true, color: '#1e3a8a', bg: '#eff6ff' },
   A2: { raw: 'Category', bold: true, bg: '#f1f5f9' },
   B2: { raw: 'Oct Budget', bold: true, bg: '#f1f5f9', align: 'right' },
   C2: { raw: 'Nov Budget', bold: true, bg: '#f1f5f9', align: 'right' },
