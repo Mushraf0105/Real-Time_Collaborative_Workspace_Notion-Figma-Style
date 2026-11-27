@@ -16,7 +16,16 @@ import {
   FileText,
   FileSpreadsheet,
   Presentation,
-  Palette
+  Palette,
+  Home,
+  Plus,
+  Trash2,
+  Folder,
+  ArrowRight,
+  Shield,
+  Sparkles,
+  Menu,
+  X
 } from 'lucide-react';
 import {
   exportToPDF,
@@ -28,10 +37,26 @@ import {
   exportSlidesToPresentation,
 } from '../utils/exportDocument';
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001/api';
-const WS_URL = process.env.NEXT_PUBLIC_WS_URL || 'ws://localhost:1234';
+const getApiBase = () => {
+  if (process.env.NEXT_PUBLIC_API_URL) return process.env.NEXT_PUBLIC_API_URL;
+  if (typeof window !== 'undefined' && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
+    return 'https://syncspace-backend-v89m.onrender.com/api';
+  }
+  return 'http://localhost:5001/api';
+};
+
+const getWsUrl = () => {
+  if (process.env.NEXT_PUBLIC_WS_URL) return process.env.NEXT_PUBLIC_WS_URL;
+  if (typeof window !== 'undefined' && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
+    return 'wss://syncspace-backend-v89m.onrender.com';
+  }
+  return 'ws://localhost:1234';
+};
 
 export default function WorkspacePage() {
+  const API_BASE = getApiBase();
+  const WS_URL = getWsUrl();
+
   // State: Core data
   const [workspaces, setWorkspaces] = useState([]);
   const [currentWorkspace, setCurrentWorkspace] = useState(null);
@@ -40,6 +65,13 @@ export default function WorkspacePage() {
   const [users, setUsers] = useState([]);
   const [currentUser, setCurrentUser] = useState(null);
   const [activeEditor, setActiveEditor] = useState(null);
+
+  // State: Workspace creation modal
+  const [showCreateWsModal, setShowCreateWsModal] = useState(false);
+  const [wsName, setWsName] = useState('');
+  const [wsIcon, setWsIcon] = useState('🏢');
+  const [wsDesc, setWsDesc] = useState('');
+  const [isCreatingWs, setIsCreatingWs] = useState(false);
 
   // State: Workspace views & drawers
   const [activeMode, setActiveMode] = useState('document'); // 'document' | 'canvas'
@@ -66,22 +98,43 @@ export default function WorkspacePage() {
   const updateNavigationState = (wsId, docId, mode) => {
     if (typeof window === 'undefined') return;
     try {
-      if (wsId) localStorage.setItem('syncspace_active_workspace_id', wsId);
+      if (wsId) {
+        localStorage.setItem('syncspace_active_workspace_id', wsId);
+      } else {
+        localStorage.removeItem('syncspace_active_workspace_id');
+      }
       if (docId) {
         localStorage.setItem('syncspace_active_document_id', docId);
       } else {
         localStorage.removeItem('syncspace_active_document_id');
       }
-      if (mode) localStorage.setItem('syncspace_active_mode', mode);
+      if (mode && wsId) {
+        localStorage.setItem('syncspace_active_mode', mode);
+      } else {
+        localStorage.removeItem('syncspace_active_mode');
+      }
 
       // Keep URL search params in sync for seamless refresh & bookmarking
       const url = new URL(window.location.href);
-      if (wsId) url.searchParams.set('ws', wsId);
+      if (wsId) {
+        url.searchParams.set('ws', wsId);
+      } else {
+        url.searchParams.delete('ws');
+      }
       if (docId) url.searchParams.set('doc', docId);
       else url.searchParams.delete('doc');
-      if (mode) url.searchParams.set('mode', mode);
-      window.history.replaceState(null, '', url.pathname + url.search);
+      if (mode && wsId) url.searchParams.set('mode', mode);
+      else url.searchParams.delete('mode');
+
+      window.history.replaceState(null, '', url.pathname + (url.search || ''));
     } catch (e) {}
+  };
+
+  const handleGoHome = () => {
+    setCurrentWorkspace(null);
+    setCurrentDocument(null);
+    setDocuments([]);
+    updateNavigationState(null, null, null);
   };
 
   const handleSwitchUser = (user) => {
@@ -101,9 +154,9 @@ export default function WorkspacePage() {
     async function initWorkspace() {
       try {
         const urlParams = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null;
-        const savedWsId = urlParams?.get('ws') || (typeof window !== 'undefined' ? localStorage.getItem('syncspace_active_workspace_id') : null);
-        const savedDocId = urlParams?.get('doc') || (typeof window !== 'undefined' ? localStorage.getItem('syncspace_active_document_id') : null);
-        const savedMode = urlParams?.get('mode') || (typeof window !== 'undefined' ? localStorage.getItem('syncspace_active_mode') : null);
+        const urlWsId = urlParams?.get('ws');
+        const urlDocId = urlParams?.get('doc');
+        const urlMode = urlParams?.get('mode');
         const savedUserId = typeof window !== 'undefined' ? localStorage.getItem('syncspace_active_user_id') : null;
 
         // Fetch users
@@ -120,14 +173,20 @@ export default function WorkspacePage() {
         const wsData = await wsRes.json();
         setWorkspaces(wsData);
 
-        if (wsData.length > 0) {
-          let targetWs = wsData[0];
-          if (savedWsId) {
-            const foundWs = wsData.find((w) => w.id === savedWsId);
-            if (foundWs) targetWs = foundWs;
+        // ONLY load workspace if URL has explicit ?ws= param!
+        // This ensures visiting "/" directly displays the Home Page / Workspace Selection Hub!
+        // When refreshed inside a workspace (URL has ?ws=...), it stays right where it was refreshed!
+        if (urlWsId && wsData.length > 0) {
+          const foundWs = wsData.find((w) => w.id === urlWsId);
+          if (foundWs) {
+            setCurrentWorkspace(foundWs);
+            await loadDocuments(foundWs.id, urlDocId, urlMode);
+          } else {
+            handleGoHome();
           }
-          setCurrentWorkspace(targetWs);
-          await loadDocuments(targetWs.id, savedDocId, savedMode);
+        } else {
+          // Fresh launch on "/" -> Show Home Page / Workspace Hub!
+          handleGoHome();
         }
       } catch (err) {
         console.error('Failed to load initial workspace data:', err);
@@ -635,6 +694,7 @@ export default function WorkspacePage() {
         onSelectWorkspace={handleSelectWorkspace}
         onCreateWorkspace={handleCreateWorkspace}
         onDeleteWorkspace={handleDeleteWorkspace}
+        onGoHome={handleGoHome}
         documents={documents}
         currentDocument={currentDocument}
         onSelectDocument={handleSelectDocument}
@@ -649,7 +709,280 @@ export default function WorkspacePage() {
 
       {/* Main Collaborative Workspace Canvas / Document Area */}
       <div className="flex-1 flex flex-col h-full min-w-0 overflow-hidden">
-        {currentDocument ? (
+        {!currentWorkspace ? (
+          /* ========================================================================= */
+          /* HOME PAGE / WORKSPACE SELECTION HUB (Shown on initial visit & Home nav)    */
+          /* ========================================================================= */
+          <div className="flex-1 flex flex-col h-full overflow-y-auto bg-gradient-to-b from-slate-50 to-white select-none">
+            {/* Top Navigation Bar of Home Page */}
+            <header className="h-16 px-6 border-b border-slate-200/80 bg-white/80 backdrop-blur-md flex items-center justify-between sticky top-0 z-20">
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => setSidebarOpen(true)}
+                  className="md:hidden p-2 text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-lg"
+                >
+                  <Menu size={20} />
+                </button>
+                <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-blue-600 to-indigo-600 text-white flex items-center justify-center font-bold text-lg shadow-sm">
+                  ⚡
+                </div>
+                <div>
+                  <h1 className="text-sm font-bold text-slate-800 leading-tight">SyncSpace Workspace Hub</h1>
+                  <p className="text-[11px] text-slate-500">Real-Time Team Collaboration Suite</p>
+                </div>
+              </div>
+
+              {/* User Switcher / Persona in Home Header */}
+              <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2 bg-slate-100/90 px-3 py-1.5 rounded-xl border border-slate-200/80">
+                  <div
+                    className="w-6 h-6 rounded-full flex items-center justify-center text-white text-xs font-bold shrink-0 shadow-xs"
+                    style={{ backgroundColor: currentUser?.color || '#3b82f6' }}
+                  >
+                    {currentUser?.name?.charAt(0) || 'U'}
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-xs font-bold text-slate-800">{currentUser?.name || 'Collaborator'}</span>
+                    {currentUser?.role === 'ADMIN' ? (
+                      <span className="text-[10px] font-bold bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded-full border border-blue-200 flex items-center gap-0.5">
+                        <Shield size={10} /> Admin
+                      </span>
+                    ) : (
+                      <span className="text-[10px] font-medium bg-slate-200 text-slate-600 px-1.5 py-0.5 rounded-full">
+                        Member
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                {/* Quick User Switch Dropdown */}
+                <div className="relative group">
+                  <button className="text-xs text-blue-600 hover:text-blue-800 font-semibold px-2 py-1 rounded-lg hover:bg-blue-50 transition-colors cursor-pointer">
+                    Switch Persona ▾
+                  </button>
+                  <div className="hidden group-hover:block absolute right-0 top-full mt-1 bg-white border border-slate-200 rounded-xl shadow-xl z-50 p-1 min-w-[210px]">
+                    <div className="px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                      Select Collaborator
+                    </div>
+                    {users.map((u) => (
+                      <button
+                        key={u.id}
+                        onClick={() => handleSwitchUser(u)}
+                        className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                          currentUser?.id === u.id ? 'bg-blue-50 text-blue-700 font-bold' : 'hover:bg-slate-100 text-slate-700'
+                        }`}
+                      >
+                        <div className="flex items-center gap-2 truncate">
+                          <div className="w-3.5 h-3.5 rounded-full shrink-0" style={{ backgroundColor: u.color }} />
+                          <span className="truncate">{u.name}</span>
+                        </div>
+                        {u.role === 'ADMIN' && <span className="text-[10px] text-blue-600 font-bold shrink-0">Admin</span>}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </header>
+
+            {/* Hero & Workspace Selector Section */}
+            <div className="max-w-6xl w-full mx-auto px-6 py-8 space-y-10">
+              {/* Hero Banner */}
+              <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-blue-700 via-indigo-700 to-purple-800 p-8 text-white shadow-xl">
+                <div className="relative z-10 max-w-2xl">
+                  <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/15 backdrop-blur-md text-white text-xs font-semibold mb-4 border border-white/20">
+                    <Sparkles size={13} className="text-amber-300" />
+                    <span>Multi-Agent Real-Time CRDT Architecture</span>
+                  </div>
+                  <h2 className="text-3xl font-extrabold tracking-tight mb-2">
+                    Welcome to SyncSpace
+                  </h2>
+                  <p className="text-sm text-blue-100 leading-relaxed max-w-xl">
+                    Select a workspace below to collaborate in real-time across Documents, Figma Whiteboards, Excel Spreadsheets, and PowerPoint Slide Decks.
+                  </p>
+                </div>
+              </div>
+
+              {/* Workspaces Section */}
+              <div className="space-y-4">
+                <div className="flex items-center justify-between flex-wrap gap-3">
+                  <div>
+                    <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
+                      <Folder size={20} className="text-blue-600" />
+                      <span>Available Workspaces</span>
+                      <span className="text-xs font-semibold bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full">
+                        {workspaces.length}
+                      </span>
+                    </h3>
+                    <p className="text-xs text-slate-500">
+                      Pick a workspace to open its documents, whiteboards, spreadsheets, and presentation decks.
+                    </p>
+                  </div>
+
+                  {currentUser?.role === 'ADMIN' ? (
+                    <button
+                      onClick={() => {
+                        setWsName('');
+                        setWsDesc('');
+                        setWsIcon('🏢');
+                        setShowCreateWsModal(true);
+                      }}
+                      className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold bg-blue-600 hover:bg-blue-700 text-white shadow-sm transition-all cursor-pointer"
+                    >
+                      <Plus size={15} />
+                      <span>Create New Workspace</span>
+                    </button>
+                  ) : (
+                    <div className="flex items-center gap-1.5 text-xs text-slate-400 bg-slate-100 px-3 py-1.5 rounded-xl border border-slate-200/80">
+                      <Shield size={13} className="text-slate-400" />
+                      <span>Administrator authority required to create or delete workspaces</span>
+                    </div>
+                  )}
+                </div>
+
+                {/* Workspaces Cards Grid */}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+                  {workspaces.map((ws) => (
+                    <div
+                      key={ws.id}
+                      className="group relative bg-white rounded-2xl border border-slate-200 hover:border-blue-300 hover:shadow-xl transition-all flex flex-col justify-between p-5"
+                    >
+                      <div>
+                        <div className="flex items-start justify-between gap-3 mb-3">
+                          <div className="w-12 h-12 rounded-xl bg-blue-50 border border-blue-100 flex items-center justify-center text-2xl group-hover:scale-110 transition-transform shrink-0">
+                            {ws.icon || '🏢'}
+                          </div>
+                          {currentUser?.role === 'ADMIN' && workspaces.length > 1 && (
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                if (
+                                  confirm(
+                                    `Delete workspace "${ws.name}"? All documents, canvas objects, and data will be permanently removed.`
+                                  )
+                                ) {
+                                  handleDeleteWorkspace(ws.id);
+                                }
+                              }}
+                              className="p-1.5 text-slate-300 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
+                              title="Delete workspace (Admin only)"
+                            >
+                              <Trash2 size={16} />
+                            </button>
+                          )}
+                        </div>
+
+                        <h4 className="font-bold text-base text-slate-800 group-hover:text-blue-600 transition-colors mb-1">
+                          {ws.name}
+                        </h4>
+                        <p className="text-xs text-slate-500 line-clamp-2 mb-4 leading-relaxed">
+                          {ws.description || 'Enterprise collaborative workspace for engineering, design, spreadsheets, and presentations.'}
+                        </p>
+
+                        {/* Modalities Available Pill */}
+                        <div className="flex flex-wrap gap-1.5 mb-4">
+                          <span className="text-[10px] font-semibold bg-blue-50 text-blue-700 px-2 py-0.5 rounded-md border border-blue-100">
+                            📝 Docs
+                          </span>
+                          <span className="text-[10px] font-semibold bg-purple-50 text-purple-700 px-2 py-0.5 rounded-md border border-purple-100">
+                            🎨 Figma Canvas
+                          </span>
+                          <span className="text-[10px] font-semibold bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded-md border border-emerald-100">
+                            📊 Spreadsheets
+                          </span>
+                          <span className="text-[10px] font-semibold bg-amber-50 text-amber-700 px-2 py-0.5 rounded-md border border-amber-100">
+                            📽️ Slides
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Enter Button */}
+                      <button
+                        onClick={() => handleSelectWorkspace(ws)}
+                        className="w-full flex items-center justify-center gap-2 py-2 px-4 rounded-xl text-xs font-bold bg-slate-900 group-hover:bg-blue-600 text-white shadow-xs transition-colors cursor-pointer"
+                      >
+                        <span>Enter Workspace</span>
+                        <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
+                      </button>
+                    </div>
+                  ))}
+
+                  {/* Quick Create Card for Admin */}
+                  {currentUser?.role === 'ADMIN' && (
+                    <div
+                      onClick={() => {
+                        setWsName('');
+                        setWsDesc('');
+                        setWsIcon('🏢');
+                        setShowCreateWsModal(true);
+                      }}
+                      className="border-2 border-dashed border-slate-200 hover:border-blue-400 rounded-2xl p-6 flex flex-col items-center justify-center text-center cursor-pointer hover:bg-blue-50/30 transition-all min-h-[220px]"
+                    >
+                      <div className="w-12 h-12 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center mb-3">
+                        <Plus size={24} />
+                      </div>
+                      <h4 className="font-bold text-sm text-slate-800 mb-1">Create Another Workspace</h4>
+                      <p className="text-xs text-slate-400 max-w-[200px]">
+                        Add an isolated workspace for a new department, team, or project.
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Feature Modalities Showcase */}
+              <div className="space-y-4 pt-4 border-t border-slate-200">
+                <div>
+                  <h3 className="text-base font-bold text-slate-800">Collaborative Modalities in SyncSpace</h3>
+                  <p className="text-xs text-slate-500">
+                    Four specialized workspaces unified under one real-time multi-agent sync engine.
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                  <div className="p-4 rounded-2xl bg-white border border-slate-200 shadow-xs">
+                    <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center text-xl mb-3">
+                      📝
+                    </div>
+                    <h5 className="font-bold text-xs text-slate-800 mb-1">Nexvia Documents</h5>
+                    <p className="text-[11px] text-slate-500 leading-relaxed">
+                      Notion-style rich text with inline checklists, markdown syntax, slash commands, and granular comments.
+                    </p>
+                  </div>
+
+                  <div className="p-4 rounded-2xl bg-white border border-slate-200 shadow-xs">
+                    <div className="w-10 h-10 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center text-xl mb-3">
+                      🎨
+                    </div>
+                    <h5 className="font-bold text-xs text-slate-800 mb-1">Nexvia Whiteboard</h5>
+                    <p className="text-[11px] text-slate-500 leading-relaxed">
+                      Figma-style multiplayer infinite canvas with vector pens, shapes, sticky notes, and live cursor awareness.
+                    </p>
+                  </div>
+
+                  <div className="p-4 rounded-2xl bg-white border border-slate-200 shadow-xs">
+                    <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-xl mb-3">
+                      📊
+                    </div>
+                    <h5 className="font-bold text-xs text-slate-800 mb-1">Nexvia Spreadsheets</h5>
+                    <p className="text-[11px] text-slate-500 leading-relaxed">
+                      Excel-style collaborative grid with live formula evaluation (=SUM, =AVERAGE), formatting, and CSV export.
+                    </p>
+                  </div>
+
+                  <div className="p-4 rounded-2xl bg-white border border-slate-200 shadow-xs">
+                    <div className="w-10 h-10 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center text-xl mb-3">
+                      📽️
+                    </div>
+                    <h5 className="font-bold text-xs text-slate-800 mb-1">Nexvia Pitch Deck</h5>
+                    <p className="text-[11px] text-slate-500 leading-relaxed">
+                      PowerPoint-style slides with layout customization, speaker notes, live presenter view, and full-screen display.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        ) : currentDocument ? (
           <>
             {/* Header with Title, Mode Switcher, Online Avatars, Actions */}
             <CollaborativeHeader
@@ -730,65 +1063,200 @@ export default function WorkspacePage() {
             </div>
           </>
         ) : (
-          <div className="flex-1 flex flex-col items-center justify-center p-6 text-center select-none bg-slate-50/50">
-            <div className="w-16 h-16 rounded-2xl bg-white border border-slate-200 shadow-sm flex items-center justify-center text-3xl mb-4">
-              {currentWorkspace?.icon || '📁'}
+          /* ========================================================================= */
+          /* EMPTY WORKSPACE ONBOARDING (Workspace selected, but 0 documents yet)       */
+          /* ========================================================================= */
+          <div className="flex-1 flex flex-col h-full bg-slate-50/50">
+            {/* Top Workspace Header Bar */}
+            <div className="h-14 px-4 border-b border-slate-200 flex items-center justify-between bg-white">
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setSidebarOpen(true)}
+                  className="md:hidden p-1.5 text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-lg"
+                >
+                  <Menu size={18} />
+                </button>
+                <button
+                  onClick={handleGoHome}
+                  className="flex items-center gap-1.5 text-xs font-semibold text-slate-600 hover:text-blue-600 transition-colors cursor-pointer"
+                >
+                  <Home size={14} />
+                  <span>All Workspaces</span>
+                </button>
+                <span className="text-slate-300">/</span>
+                <span className="text-xs font-bold text-slate-800 flex items-center gap-1">
+                  <span>{currentWorkspace.icon || '🏢'}</span>
+                  <span>{currentWorkspace.name}</span>
+                </span>
+              </div>
             </div>
-            <h2 className="text-lg font-bold text-slate-800 mb-1">
-              {currentWorkspace ? `${currentWorkspace.name} is ready` : 'No workspace selected'}
-            </h2>
-            <p className="text-xs text-slate-500 max-w-sm mb-6">
-              This workspace is completely clean. Choose a format to start entering your own data:
-            </p>
 
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 max-w-xl w-full">
-              <button
-                onClick={() => handleCreateDocument(null, { title: 'Untitled Document', icon: '📝', mode: 'document' })}
-                className="flex flex-col items-center p-4 rounded-xl bg-white border border-slate-200 hover:border-blue-400 hover:shadow-md transition-all group text-center cursor-pointer"
-              >
-                <div className="w-10 h-10 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center mb-2 group-hover:scale-110 transition-transform">
-                  <FileText size={20} />
-                </div>
-                <span className="text-xs font-bold text-slate-800">Blank Document</span>
-                <span className="text-[10px] text-slate-400">Notion-style</span>
-              </button>
+            <div className="flex-1 flex flex-col items-center justify-center p-6 text-center select-none">
+              <div className="w-16 h-16 rounded-2xl bg-white border border-slate-200 shadow-sm flex items-center justify-center text-3xl mb-4">
+                {currentWorkspace?.icon || '📁'}
+              </div>
+              <h2 className="text-lg font-bold text-slate-800 mb-1">
+                {currentWorkspace.name} is ready
+              </h2>
+              <p className="text-xs text-slate-500 max-w-sm mb-6">
+                This workspace is completely clean. Choose a format to start entering your own data:
+              </p>
 
-              <button
-                onClick={() => handleCreateDocument(null, { title: 'Untitled Spreadsheet', icon: '📊', mode: 'spreadsheet' })}
-                className="flex flex-col items-center p-4 rounded-xl bg-white border border-slate-200 hover:border-emerald-400 hover:shadow-md transition-all group text-center cursor-pointer"
-              >
-                <div className="w-10 h-10 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center mb-2 group-hover:scale-110 transition-transform">
-                  <FileSpreadsheet size={20} />
-                </div>
-                <span className="text-xs font-bold text-slate-800">Blank Spreadsheet</span>
-                <span className="text-[10px] text-slate-400">Excel-style</span>
-              </button>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 max-w-xl w-full">
+                <button
+                  onClick={() => handleCreateDocument(null, { title: 'Untitled Document', icon: '📝', mode: 'document' })}
+                  className="flex flex-col items-center p-4 rounded-xl bg-white border border-slate-200 hover:border-blue-400 hover:shadow-md transition-all group text-center cursor-pointer"
+                >
+                  <div className="w-10 h-10 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center mb-2 group-hover:scale-110 transition-transform">
+                    <FileText size={20} />
+                  </div>
+                  <span className="text-xs font-bold text-slate-800">Blank Document</span>
+                  <span className="text-[10px] text-slate-400">Notion-style</span>
+                </button>
 
-              <button
-                onClick={() => handleCreateDocument(null, { title: 'Untitled Presentation', icon: '📽️', mode: 'slides' })}
-                className="flex flex-col items-center p-4 rounded-xl bg-white border border-slate-200 hover:border-amber-400 hover:shadow-md transition-all group text-center cursor-pointer"
-              >
-                <div className="w-10 h-10 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center mb-2 group-hover:scale-110 transition-transform">
-                  <Presentation size={20} />
-                </div>
-                <span className="text-xs font-bold text-slate-800">Blank Presentation</span>
-                <span className="text-[10px] text-slate-400">PowerPoint-style</span>
-              </button>
+                <button
+                  onClick={() => handleCreateDocument(null, { title: 'Untitled Spreadsheet', icon: '📊', mode: 'spreadsheet' })}
+                  className="flex flex-col items-center p-4 rounded-xl bg-white border border-slate-200 hover:border-emerald-400 hover:shadow-md transition-all group text-center cursor-pointer"
+                >
+                  <div className="w-10 h-10 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center mb-2 group-hover:scale-110 transition-transform">
+                    <FileSpreadsheet size={20} />
+                  </div>
+                  <span className="text-xs font-bold text-slate-800">Blank Spreadsheet</span>
+                  <span className="text-[10px] text-slate-400">Excel-style</span>
+                </button>
 
-              <button
-                onClick={() => handleCreateDocument(null, { title: 'Untitled Whiteboard', icon: '🎨', mode: 'canvas' })}
-                className="flex flex-col items-center p-4 rounded-xl bg-white border border-slate-200 hover:border-purple-400 hover:shadow-md transition-all group text-center cursor-pointer"
-              >
-                <div className="w-10 h-10 rounded-lg bg-purple-50 text-purple-600 flex items-center justify-center mb-2 group-hover:scale-110 transition-transform">
-                  <Palette size={20} />
-                </div>
-                <span className="text-xs font-bold text-slate-800">Blank Whiteboard</span>
-                <span className="text-[10px] text-slate-400">Figma-style</span>
-              </button>
+                <button
+                  onClick={() => handleCreateDocument(null, { title: 'Untitled Presentation', icon: '📽️', mode: 'slides' })}
+                  className="flex flex-col items-center p-4 rounded-xl bg-white border border-slate-200 hover:border-amber-400 hover:shadow-md transition-all group text-center cursor-pointer"
+                >
+                  <div className="w-10 h-10 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center mb-2 group-hover:scale-110 transition-transform">
+                    <Presentation size={20} />
+                  </div>
+                  <span className="text-xs font-bold text-slate-800">Blank Presentation</span>
+                  <span className="text-[10px] text-slate-400">PowerPoint-style</span>
+                </button>
+
+                <button
+                  onClick={() => handleCreateDocument(null, { title: 'Untitled Whiteboard', icon: '🎨', mode: 'canvas' })}
+                  className="flex flex-col items-center p-4 rounded-xl bg-white border border-slate-200 hover:border-purple-400 hover:shadow-md transition-all group text-center cursor-pointer"
+                >
+                  <div className="w-10 h-10 rounded-lg bg-purple-50 text-purple-600 flex items-center justify-center mb-2 group-hover:scale-110 transition-transform">
+                    <Palette size={20} />
+                  </div>
+                  <span className="text-xs font-bold text-slate-800">Blank Whiteboard</span>
+                  <span className="text-[10px] text-slate-400">Figma-style</span>
+                </button>
+              </div>
             </div>
           </div>
         )}
       </div>
+
+      {/* Create Workspace Modal (Global) */}
+      {showCreateWsModal && (
+        <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in duration-150 select-none">
+          <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-md overflow-hidden">
+            <div className="p-4 border-b border-slate-200 flex items-center justify-between bg-slate-50">
+              <h3 className="font-bold text-sm text-slate-800 flex items-center gap-2">
+                <span>🏢</span>
+                <span>Create New Workspace</span>
+              </h3>
+              <button
+                onClick={() => setShowCreateWsModal(false)}
+                className="p-1 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-200 cursor-pointer"
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            <form
+              onSubmit={async (e) => {
+                e.preventDefault();
+                if (!wsName.trim()) return;
+                setIsCreatingWs(true);
+                try {
+                  await handleCreateWorkspace({
+                    name: wsName.trim(),
+                    icon: wsIcon,
+                    description: wsDesc.trim(),
+                  });
+                  setShowCreateWsModal(false);
+                } finally {
+                  setIsCreatingWs(false);
+                }
+              }}
+              className="p-5 space-y-4"
+            >
+              <div>
+                <label className="text-[10px] font-bold text-slate-500 uppercase block mb-1">
+                  Workspace Name
+                </label>
+                <input
+                  type="text"
+                  value={wsName}
+                  onChange={(e) => setWsName(e.target.value)}
+                  placeholder="e.g. Nexvia AI Lab"
+                  className="w-full text-xs px-3 py-2 bg-white border border-slate-200 rounded-lg outline-none focus:border-blue-500 shadow-xs"
+                  required
+                  autoFocus
+                />
+              </div>
+
+              <div>
+                <label className="text-[10px] font-bold text-slate-500 uppercase block mb-1">
+                  Choose Icon
+                </label>
+                <div className="flex flex-wrap gap-2">
+                  {['🏢', '🚀', '💡', '⚡', '🎨', '📊', '🛠️', '🌐', '📈', '🔬'].map((ic) => (
+                    <button
+                      type="button"
+                      key={ic}
+                      onClick={() => setWsIcon(ic)}
+                      className={`w-9 h-9 rounded-lg text-lg flex items-center justify-center transition-all cursor-pointer ${
+                        wsIcon === ic
+                          ? 'bg-blue-100 border-2 border-blue-500 scale-105'
+                          : 'bg-slate-100 hover:bg-slate-200 border border-transparent'
+                      }`}
+                    >
+                      {ic}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <label className="text-[10px] font-bold text-slate-500 uppercase block mb-1">
+                  Description
+                </label>
+                <textarea
+                  value={wsDesc}
+                  onChange={(e) => setWsDesc(e.target.value)}
+                  placeholder="Brief purpose of this workspace..."
+                  rows={3}
+                  className="w-full text-xs px-3 py-2 bg-white border border-slate-200 rounded-lg outline-none focus:border-blue-500 shadow-xs resize-none"
+                />
+              </div>
+
+              <div className="pt-2 flex items-center justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setShowCreateWsModal(false)}
+                  className="px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isCreatingWs || !wsName.trim()}
+                  className="px-4 py-1.5 rounded-lg text-xs font-bold bg-blue-600 hover:bg-blue-700 text-white shadow-xs transition-colors disabled:opacity-50 cursor-pointer"
+                >
+                  {isCreatingWs ? 'Creating...' : 'Create Workspace'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* Version History Modal */}
       <VersionHistoryModal

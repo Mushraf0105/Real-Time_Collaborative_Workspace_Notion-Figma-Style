@@ -114,14 +114,19 @@ SyncSpace provides automatic two-way synchronization between disk credential fil
 
 ---
 
-## ⚡ Page State & Modality Retention on Refresh
+## 🏠 Home Page / Workspace Selection Hub & Refresh Retention
 
-When pressing Refresh (`F5`) or reopening the workspace:
-- **Active Workspace Retained:** The app remains in your currently active workspace instead of jumping to the first workspace.
-- **Active Document Retained:** Keeps you on the exact document, spreadsheet, presentation, or whiteboard you were editing.
-- **Active Modality Retained:** Preserves your view mode (**Spreadsheet**, **Presentation Slides**, **Document Editor**, or **Whiteboard Canvas**).
-- **Active User Persona Retained:** Remembers your chosen collaborator persona across reloads.
-- **Dual-Layer Persistence:** Driven by browser `localStorage` and URL parameters (`?ws=...&doc=...&mode=...`) allowing seamless bookmarking and sharing.
+SyncSpace delivers an intuitive, first-class workspace entry and routing lifecycle:
+
+- **Clean Launch on Home Page (`/`):** When launching the app or navigating to the root URL `/`, SyncSpace presents a modern **Workspace Selection Dashboard** rather than forcing an auto-redirect into a demo workspace.
+  - Displays all available workspaces (**Nexvia Technologies**, etc.) with rich cards showing icons, descriptions, modality badges, and member stats.
+  - **Administrator Authority:** Administrators have exclusive access to `+ Create New Workspace` and workspace deletion controls; non-admin collaborators see clear read-only governance badges.
+  - **Collaborator Persona Switcher:** Allows seamless persona switching directly from the Home Page header.
+  - **Modalities Preview:** Highlights the 4 collaborative platforms (**Nexvia Documents**, **Nexvia Whiteboard**, **Nexvia Spreadsheets**, and **Nexvia Pitch Deck**).
+- **Exact Refresh Redirection:**
+  - When refreshed on the **Home Page (`/`)**, you remain on the Home Page.
+  - When refreshed inside any workspace or document (`?ws=...&doc=...&mode=...`), SyncSpace immediately restores the exact workspace, document, and modality where you were working without losing your place.
+- **1-Click Return to Home:** The sidebar and breadcrumb navigation include an **`🏠 All Workspaces (Home)`** button to return to the Workspace Hub at any time.
 
 ---
 
@@ -364,3 +369,6 @@ FS-02/
 - [x] **Test results & performance numbers:** [TEST_REPORT.md](TEST_REPORT.md) (1,724 ops/sec, p50=0.09ms, 100% convergence).
 - [x] **10-minute final presentation:** [PRESENTATION.md](PRESENTATION.md) with slide deck layout and verbatim speaker script.
 - [x] **Individual reflection:** [REFLECTIONS.md](REFLECTIONS.md) covering CRDT math, real-time infrastructure, and collaborative UX.
+
+## 📄 License
+ISC License © 2026 Nexvia Technologies Team. Full-Stack Assessment FS-02.

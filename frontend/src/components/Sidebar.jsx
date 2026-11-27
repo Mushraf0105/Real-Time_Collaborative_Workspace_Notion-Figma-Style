@@ -13,7 +13,9 @@ import {
   FileSpreadsheet,
   Presentation,
   Palette,
-  Shield
+  Shield,
+  Home,
+  FolderOpen
 } from 'lucide-react';
 
 export default function Sidebar({
@@ -24,6 +26,7 @@ export default function Sidebar({
   onSelectWorkspace,
   onCreateWorkspace,
   onDeleteWorkspace,
+  onGoHome,
   documents,
   currentDocument,
   onSelectDocument,
@@ -146,7 +149,7 @@ export default function Sidebar({
               </div>
               <div className="truncate">
                 <h2 className="text-sm font-bold text-slate-800 truncate leading-tight">
-                  {currentWorkspace?.name || 'SyncSpace Workspace'}
+                  {currentWorkspace?.name || 'SyncSpace Hub'}
                 </h2>
                 <p className="text-xs text-slate-500 font-medium">Real-Time Team Hub</p>
               </div>
@@ -194,6 +197,23 @@ export default function Sidebar({
                 <span>Workspaces ({workspaces.length})</span>
                 {isAdmin && <span className="text-blue-600 font-semibold lowercase">admin controls</span>}
               </div>
+
+              {/* View All Workspaces / Home Option */}
+              <button
+                onClick={() => {
+                  onGoHome?.();
+                  setWorkspaceMenuOpen(false);
+                }}
+                className={`w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
+                  !currentWorkspace
+                    ? 'bg-blue-50 text-blue-700'
+                    : 'text-slate-700 hover:bg-slate-100'
+                }`}
+              >
+                <Home size={14} className="text-blue-600 shrink-0" />
+                <span>View All Workspaces (Home)</span>
+              </button>
+              <div className="h-px bg-slate-100 my-1" />
               {workspaces.map((ws) => (
                 <div
                   key={ws.id}
@@ -251,7 +271,7 @@ export default function Sidebar({
                     className="w-full flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-lg text-xs font-semibold text-blue-600 hover:bg-blue-50 transition-colors"
                   >
                     <Plus size={13} />
-                    <span>+ Create New Workspace</span>
+                    <span>Create New Workspace</span>
                   </button>
                 ) : (
                   <div className="flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-lg text-xs text-slate-400 bg-slate-50 border border-slate-100/80">
@@ -263,6 +283,24 @@ export default function Sidebar({
             </div>
             </>
           )}
+        </div>
+
+        {/* Quick Nav: All Workspaces (Home) */}
+        <div className="px-3 pt-3 pb-1">
+          <button
+            onClick={() => {
+              onGoHome?.();
+              if (onClose) onClose();
+            }}
+            className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold transition-all ${
+              !currentWorkspace
+                ? 'bg-blue-600 text-white shadow-sm'
+                : 'text-slate-600 hover:bg-slate-200/70 hover:text-slate-900'
+            }`}
+          >
+            <Home size={15} />
+            <span>All Workspaces (Home)</span>
+          </button>
         </div>
 
         {/* Documents Tree Header & Button */}
@@ -345,7 +383,15 @@ export default function Sidebar({
 
         {/* Documents Tree Scrollable Container */}
         <div className="flex-1 overflow-y-auto px-2 space-y-0.5">
-          {rootDocs.length === 0 ? (
+          {!currentWorkspace ? (
+            <div className="text-xs text-slate-400 text-center py-8 px-3">
+              <FolderOpen size={24} className="mx-auto mb-2 text-slate-300" />
+              <p className="font-semibold text-slate-600 mb-1">No Workspace Selected</p>
+              <p className="text-[11px] text-slate-400 leading-relaxed">
+                Choose a workspace from Home or the dropdown above to view documents.
+              </p>
+            </div>
+          ) : rootDocs.length === 0 ? (
             <div className="text-xs text-slate-400 text-center py-6">
               No documents yet. Create one!
             </div>
@@ -366,7 +412,7 @@ export default function Sidebar({
               }`}
             />
             <span className="font-medium">
-              {wsConnected ? 'Live Yjs WS :1234' : 'Connecting...'}
+              {wsConnected ? 'Live Yjs Sync' : 'Connecting...'}
             </span>
           </div>
           <span className="text-[10px] font-semibold text-emerald-700 bg-emerald-100/70 px-1.5 py-0.5 rounded">
